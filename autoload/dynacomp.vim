@@ -163,7 +163,7 @@ function! s:new_cmpwin(define) "{{{
   call s:_guicursor_enter()
   sil! exe 'hi DynaCompLinePre '.( has("gui_running") ? 'gui' : 'cterm' ).'fg=bg'
   sy match DynaCompLinePre '^>'
-  let _ = {'name': a:define.name, 'rest': restcmds, 'mw': s:_get_matchwin(), 'compfunc': a:define.comp, 'cmpsep': a:define.insert_cmpsep ? ' ' : ''}
+  let _ = {'name': a:define.name, 'rest': restcmds, 'mw': s:_get_matchwin(), 'compfunc': a:define.comp, 'compsep': a:define.append_compsep ? ' ' : ''}
   let _.candidates = call(a:define.comp, [a:define.default_text, ''])
   if has_key(a:define, 'exit')
     let _.exitfunc = a:define.exit
@@ -256,7 +256,7 @@ function! s:_cmpwin.select_insert() "{{{
   if selected==''
     return
   end
-  call s:prompt.append(self._get_argleadcutted_candidate(selected). self.cmpsep)
+  call s:prompt.append(self._get_argleadcutted_candidate(selected). self.compsep)
   let save_candidates = copy(self.candidates)
   call self.update_candidates()
   if self.candidates != save_candidates
@@ -361,7 +361,7 @@ endfunction
 
 "=============================================================================
 "Main
-let s:dfl_define = {'prompt': 's:default_prompt', 'default_text': '', 'submit': 's:default_submit', 'prompt_hl': 'Comment', 'insert_cmpsep': 1}
+let s:dfl_define = {'prompt': 's:default_prompt', 'default_text': '', 'submit': 's:default_submit', 'prompt_hl': 'Comment', 'append_compsep': 1}
 "dynacomp#init({'name': 'name', 'prompt': '>', 'comp': 'compfunc(precrs,oncrs,postcrs)', 'accept': 'acceptfunc(splitmode,str)', 'exit': 'exitfunc()'})
 function! dynacomp#init(define) "{{{
   call extend(a:define, s:dfl_define, 'keep')
