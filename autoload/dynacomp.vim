@@ -9,7 +9,6 @@ aug DynaComp
   autocmd BufLeave DynaComp call s:cmpwin.close()
 aug END
 let s:prtmaps = {}
-let s:cmpmaps = {}
 let s:prtmaps['PrtBS()'] = ['<BS>', '<C-]>']
 let s:prtmaps['PrtDelete()'] = ['<Del>', '<C-d>']
 let s:prtmaps['PrtDeleteWord()'] = ['<C-w>']
@@ -24,16 +23,13 @@ let s:prtmaps['PrtCurEnd()'] = ['<C-e>']
 let s:prtmaps['PrtCurLeft()'] = ['<C-h>', '<Left>', '<C-^>']
 let s:prtmaps['PrtCurRight()'] = ['<C-l>', '<Right>']
 
-let s:prtmaps['PrtSelectEnter()'] = ['<Tab>']
 let s:prtmaps['PrtSelectMove("j")'] = ['<C-j>', '<Down>']
 let s:prtmaps['PrtSelectMove("k")'] = ['<C-k>', '<Up>']
 let s:prtmaps['PrtSelectMove("t")'] = ['<Home>', '<kHome>']
 let s:prtmaps['PrtSelectMove("b")'] = ['<End>', '<kEnd>']
 let s:prtmaps['PrtSelectMove("u")'] = ['<PageUp>', '<kPageUp>']
 let s:prtmaps['PrtSelectMove("d")'] = ['<PageDown>', '<kPageDown>']
-let s:prtmaps['PrtSelectComplete()'] = ['<C-y>']
-let s:cmpmaps['CmpSelectComplete()'] = ['<C-y>']
-let s:cmpmaps['CmpEscape()'] = ['<Tab>', '<C-e>', '<Esc>', '<C-c>', '<C-g>']
+let s:prtmaps['PrtSelectInsert()'] = ['<C-y>', '<Tab>']
 
 let s:prtmaps['PrtExit()'] = ['<Esc>', '<C-c>', '<C-g>']
 let s:prtmaps['PrtSubmit()'] = ['<CR>', '<2-LeftMouse>']
@@ -41,8 +37,6 @@ let s:prtmaps['Nop()'] = ['<S-Tab>', '<C-x>', '<C-CR>', '<C-s>', '<C-t>', '<C-v>
 
 call extend(s:prtmaps, get(g:, 'dynacomp_prompt_mappings', {}))
 call filter(s:prtmaps, 'v:val!=[]')
-call extend(s:cmpmaps, get(g:, 'dynacomp_compwin_mappings', {}))
-call filter(s:cmpmaps, 'v:val!=[]')
 
 let s:getreg_maps = {}
 let s:getreg_maps['expr'] = ['=']
@@ -166,10 +160,10 @@ function! s:new_cmpwin(define) "{{{
   if v:version > 702
     setl nornu noundofile cc=0
   end
-  call s:_guicursor_suspend()
+  call s:_guicursor_enter()
   sil! exe 'hi DynaCompLinePre '.( has("gui_running") ? 'gui' : 'cterm' ).'fg=bg'
   sy match DynaCompLinePre '^>'
-  let _ = {'name': a:define.name, 'rest': restcmds, 'mw': s:_get_matchwin(), 'is_cmpmode': 0, 'is_cmpcursor': 1, 'compfunc': a:define.comp}
+  let _ = {'name': a:define.name, 'rest': restcmds, 'mw': s:_get_matchwin(), 'compfunc': a:define.comp, 'cmpsep': a:define.insert_cmpsep ? ' ' : ''}
   let _.candidates = call(a:define.comp, [a:define.default_text, ''])
   if has_key(a:define, 'exit')
     let _.exitfunc = a:define.exit
@@ -206,7 +200,6 @@ function! s:_cmpwin.buildview() "{{{
   call map(candidates, '"> ". v:val')
   call setline(1, candidates)
   setl noma
-  "let &l:cul = self.is_cmpmode
   if has_key(self, 'selected_row')
     call cursor(self.selected_row, 1)
   else
@@ -246,87 +239,29 @@ function! s:_cmpwin.close() "{{{
   unlet s:cmpwin s:prompt s:regholder
 endfunction
 "}}}
-function! s:_cmpwin.select_enter() "{{{
-  let self.is_cmpmode = 1
-  let self.is_cmpcursor = 1
-  call s:_guicursor_enter()
-  call s:_mapping_cmpmaps()
-  let self.selected_row = line('.')
-  call s:prompt.set_cmppreview(self._get_argleadcutted_candidate())
-  call s:prompt.echo()
-endfunction
-"}}}
 function! s:_cmpwin.select_move(direction) "{{{
-  if a:direction=~'[jk]'
-    call self._select_move_jk(a:direction)
-  else
-    call self._select_move_other(a:direction)
-  endif
-  if !self.is_cmpcursor
-    return
-  end
-  if !self.is_cmpmode
-    let self.is_cmpmode = 1
-    call s:_guicursor_enter()
-    call s:_mapping_cmpmaps()
-  end
-  let self.selected_row = line('.')
-  call s:prompt.set_cmppreview(self._get_argleadcutted_candidate())
-  call s:prompt.echo()
-endfunction
-"}}}
-function! s:_cmpwin._select_move_jk(direction) "{{{
-  if !self.is_cmpmode
-    if !self.is_cmpcursor
-      let self.is_cmpcursor = 1
-      exe 'keepj norm!' a:direction=='j' ? 'gg' : 'G'
-    end
-    return
-  end
   let save_crrrow = line('.')
-  exe 'keepj norm!' a:direction
-  if line('.')==save_crrrow
-    let self.is_cmpcursor = 0
-    call self.escape_compmode()
-  endif
-endfunction
-"}}}
-function! s:_cmpwin._select_move_other(direction) "{{{
-  let self.is_cmpcursor = 1
-  call s:_guicursor_enter()
   let wht = winheight(0)
-  let directions = {'t': 'gg','b': 'G','u': wht.'k','d': wht.'j'}
+  let directions = {'t': 'gg','b': 'G','u': wht.'k','d': wht.'j','j': 'j','k': 'k'}
   exe 'keepj norm!' directions[a:direction]
+  if line('.')==save_crrrow && a:direction=~'[jk]'
+    exe 'keepj norm!' a:direction=='j' ? 'gg' : 'G'
+  endif
+  let self.selected_row = line('.')
 endfunction
 "}}}
-function! s:_cmpwin.select_insert(char) "{{{
+function! s:_cmpwin.select_insert() "{{{
   let self.selected_row = line('.')
   let selected = self._get_selected_candidate()
   if selected==''
     return
   end
-  call s:prompt.append(self._get_argleadcutted_candidate(selected). a:char)
+  call s:prompt.append(self._get_argleadcutted_candidate(selected). self.cmpsep)
   let save_candidates = copy(self.candidates)
   call self.update_candidates()
   if self.candidates != save_candidates
     unlet! self.selected_row
   end
-endfunction
-"}}}
-function! s:_cmpwin.escape_compmode() "{{{
-  let self.is_cmpmode = 0
-  let self.selected_row = line('.')
-  if self.is_cmpcursor
-    call s:_guicursor_suspend()
-  else
-    call s:_guicursor_none()
-  endif
-  mapclear <buffer>
-  call s:_mapping_input()
-  call s:_mapping_term_arrowkeys()
-  call s:_mapping_prtmaps()
-  call s:prompt.set_cmppreview('')
-  call s:prompt.echo()
 endfunction
 "}}}
 "==================
@@ -335,13 +270,9 @@ function! s:new_prompt(define) "{{{
   exe 'hi link DynaCompPrtBase' a:define.prompt_hl
   hi link DynaCompPrtText     Normal
   hi link DynaCompPrtCursor   Constant
-  let _ = {'input': [a:define.default_text, ''], 'cmppreview': '', 'prtbasefunc': a:define.prompt, 'submitfunc': a:define.submit}
+  let _ = {'input': [a:define.default_text, ''], 'prtbasefunc': a:define.prompt, 'submitfunc': a:define.submit}
   call extend(_, s:_prompt, 'keep')
   return _
-endfunction
-"}}}
-function! s:_prompt.set_cmppreview(str) "{{{
-  let self.cmppreview = a:str
 endfunction
 "}}}
 function! s:_prompt.get_joinedinput() "{{{
@@ -358,7 +289,7 @@ function! s:_prompt.echo() "{{{
   let inputs = map([self.input[0], get(onpostcurs, 1, ''), get(onpostcurs, 2, '')], 'escape(v:val, ''"\'')')
   let is_cursorspace = inputs[1]=='' || inputs[1]==' '
   let [hiactive, hicursor] = ['DynaCompPrtText', (is_cursorspace? 'DynaCompPrtBase': 'DynaCompPrtCursor')]
-  exe 'echoh DynaCompPrtBase| echon "'. self._get_prtbase(). '"| echoh' hiactive '| echon "'. inputs[0]. self.cmppreview. '"'
+  exe 'echoh DynaCompPrtBase| echon "'. self._get_prtbase(). '"| echoh' hiactive '| echon "'. inputs[0]. '"'
   exe 'echoh' hicursor '| echon "'. (is_cursorspace? '_': inputs[1]). '"| echoh' hiactive '| echon "'. inputs[2].'"| echoh NONE'
 endfunction
 "}}}
@@ -430,7 +361,7 @@ endfunction
 
 "=============================================================================
 "Main
-let s:dfl_define = {'prompt': 's:default_prompt', 'default_text': '', 'submit': 's:default_submit', 'prompt_hl': 'Comment'}
+let s:dfl_define = {'prompt': 's:default_prompt', 'default_text': '', 'submit': 's:default_submit', 'prompt_hl': 'Comment', 'insert_cmpsep': 1}
 "dynacomp#init({'name': 'name', 'prompt': '>', 'comp': 'compfunc(precrs,oncrs,postcrs)', 'accept': 'acceptfunc(splitmode,str)', 'exit': 'exitfunc()'})
 function! dynacomp#init(define) "{{{
   call extend(a:define, s:dfl_define, 'keep')
@@ -495,14 +426,6 @@ function! s:_mapping_prtmaps() "{{{
   endfor
 endfunction
 "}}}
-function! s:_mapping_cmpmaps() "{{{
-  for [key, vals] in items(s:cmpmaps)
-    for lhs in vals
-      exe 'nnoremap <buffer><silent>' lhs ':<C-u>call <SID>'.key.'<CR>'
-    endfor
-  endfor
-endfunction
-"}}}
 let s:_dupliexcluder = {}
 function! s:new_dupliexcluder() "{{{
   let _ = {'seens': {}}
@@ -552,14 +475,6 @@ function! s:_get_matchwin() "{{{
   return _
 endfunction
 "}}}
-function! s:_guicursor_none() "{{{
-  setl nocul gcr=a:block-blinkon0-NONE
-endfunction
-"}}}
-function! s:_guicursor_suspend() "{{{
-  setl nocul gcr=a:hor10-blinkon0-Cursor
-endfunction
-"}}}
 function! s:_guicursor_enter() "{{{
   setl cul gcr=a:block-blinkon0-Cursor
 endfunction
@@ -568,22 +483,13 @@ endfunction
 "=============================================================================
 function! s:PrtAdd(char) "{{{
   call s:histholder.reset()
-  if s:cmpwin.is_cmpmode
-    call s:cmpwin.select_insert(a:char)
-    call s:cmpwin.escape_compmode()
-  else
-    call s:prompt.append(a:char)
-    call s:cmpwin.update_candidates()
-  end
+  call s:prompt.append(a:char)
+  call s:cmpwin.update_candidates()
   call s:cmpwin.buildview()
 endfunction
 "}}}
 function! s:PrtBS() "{{{
   call s:histholder.reset()
-  if s:cmpwin.is_cmpmode
-    call s:cmpwin.select_insert('')
-    call s:cmpwin.escape_compmode()
-  end
   call s:prompt.bs()
   call s:cmpwin.update_candidates()
   call s:cmpwin.buildview()
@@ -591,10 +497,6 @@ endfunction
 "}}}
 function! s:PrtDelete() "{{{
   call s:histholder.reset()
-  if s:cmpwin.is_cmpmode
-    call s:cmpwin.select_insert('')
-    call s:cmpwin.escape_compmode()
-  end
   call s:prompt.delete()
   call s:cmpwin.update_candidates()
   call s:cmpwin.buildview()
@@ -602,10 +504,6 @@ endfunction
 "}}}
 function! s:PrtDeleteWord() "{{{
   call s:histholder.reset()
-  if s:cmpwin.is_cmpmode
-    call s:cmpwin.select_insert('')
-    call s:cmpwin.escape_compmode()
-  end
   call s:prompt.delete_word()
   call s:cmpwin.update_candidates()
   call s:cmpwin.buildview()
@@ -613,9 +511,6 @@ endfunction
 "}}}
 function! s:PrtClear() "{{{
   call s:histholder.reset()
-  if s:cmpwin.is_cmpmode
-    call s:cmpwin.escape_compmode()
-  end
   call s:prompt.clear()
   call s:cmpwin.update_candidates()
   call s:cmpwin.buildview()
@@ -680,29 +575,14 @@ function! s:PrtCurRight() "{{{
 endfunction
 "}}}
 
-function! s:PrtSelectEnter() "{{{
-  call s:cmpwin.select_enter()
-endfunction
-"}}}
 function! s:PrtSelectMove(direction) "{{{
   call s:cmpwin.select_move(a:direction)
 endfunction
 "}}}
-function! s:PrtSelectComplete() "{{{
+function! s:PrtSelectInsert() "{{{
   call s:histholder.reset()
-  call s:cmpwin.select_insert(' ')
+  call s:cmpwin.select_insert()
   call s:cmpwin.buildview()
-endfunction
-"}}}
-function! s:CmpSelectComplete() "{{{
-  call s:histholder.reset()
-  call s:cmpwin.select_insert(' ')
-  call s:cmpwin.escape_compmode()
-  call s:cmpwin.buildview()
-endfunction
-"}}}
-function! s:CmpEscape() "{{{
-  call s:cmpwin.escape_compmode()
 endfunction
 "}}}
 
