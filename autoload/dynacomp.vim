@@ -6,7 +6,7 @@ let g:dynacomp_cache_dir = get(g:, 'dynacomp_cache_dir', '~/.cache/dynacomp')
 "======================================
 aug DynaComp
   autocmd!
-  autocmd BufLeave DynaComp call s:cmpwin.close()
+  autocmd BufLeave DynaComp   if has_key(s:, 'cmpwin')| call s:cmpwin.close()| end
 aug END
 let s:prtmaps = {}
 let s:prtmaps['PrtBS()'] = ['<BS>', '<C-]>']
@@ -163,7 +163,7 @@ function! s:new_cmpwin(define) "{{{
   call s:_guicursor_enter()
   sil! exe 'hi DynaCompLinePre '.( has("gui_running") ? 'gui' : 'cterm' ).'fg=bg'
   sy match DynaCompLinePre '^>'
-  let _ = {'name': a:define.name, 'rest': restcmds, 'mw': s:_get_matchwin(), 'compfunc': a:define.comp, 'cmpsep': a:define.insert_cmpsep ? ' ' : ''}
+  let _ = {'name': a:define.name, 'rest': restcmds, 'mw': s:_get_matchwin(), 'compfunc': a:define.comp, 'compsep': a:define.append_compsep ? ' ' : '', 'compinsert': a:define.compinsert}
   let _.candidates = call(a:define.comp, [a:define.default_text, ''])
   if has_key(a:define, 'exit')
     let _.exitfunc = a:define.exit
@@ -186,9 +186,9 @@ function! s:_cmpwin._get_selected_candidate() "{{{
   return get(viewcandidates, self.selected_row-1, '')
 endfunction
 "}}}
-function! s:_cmpwin._get_argleadcutted_candidate(...) "{{{
+function! s:_cmpwin._get_argleadcutted_candidate(selected_candidate) "{{{
   let arglead = dynacomp#get_arglead(s:prompt.input[0])[0]
-  return substitute(substitute(a:0 ? a:1 : self._get_selected_candidate(), "\t.*$", '', ''), '^'.arglead, '', '')
+  return substitute(substitute(a:selected_candidate, "\t.*$", '', ''), '^'.arglead, '', '')
 endfunction
 "}}}
 function! s:_cmpwin.buildview() "{{{
@@ -256,7 +256,9 @@ function! s:_cmpwin.select_insert() "{{{
   if selected==''
     return
   end
-  call s:prompt.append(self._get_argleadcutted_candidate(selected). self.cmpsep)
+  "call s:prompt.append(self._get_argleadcutted_candidate(selected). self.compsep)
+  let str = call(self.compinsert, [dynacomp#get_arglead(s:prompt.input[0])[0], selected])
+  call s:prompt.append(str. self.compsep)
   let save_candidates = copy(self.candidates)
   call self.update_candidates()
   if self.candidates != save_candidates
@@ -361,7 +363,7 @@ endfunction
 
 "=============================================================================
 "Main
-let s:dfl_define = {'prompt': 's:default_prompt', 'default_text': '', 'submit': 's:default_submit', 'prompt_hl': 'Comment', 'insert_cmpsep': 1}
+let s:dfl_define = {'prompt': 's:default_prompt', 'default_text': '', 'submit': 's:default_submit', 'prompt_hl': 'Comment', 'append_compsep': 1, 'compinsert': 's:default_compinsert'}
 "dynacomp#init({'name': 'name', 'prompt': '>', 'comp': 'compfunc(precrs,oncrs,postcrs)', 'accept': 'acceptfunc(splitmode,str)', 'exit': 'exitfunc()'})
 function! dynacomp#init(define) "{{{
   call extend(a:define, s:dfl_define, 'keep')
@@ -376,10 +378,14 @@ function! dynacomp#init(define) "{{{
 endfunction
 "}}}
 
-function! dynacomp#get_arglead(str) "{{{
-  let list = split(a:str, '\%(\%(^\|\\\)\@<!\s\)\+', 1)
+function! dynacomp#get_arglead(precursor) "{{{
+  let list = split(a:precursor, '\%(\%(^\|\\\)\@<!\s\)\+', 1)
   let list[0] = substitute(list[0], '^\s*', '', '')
   return [list[-1], len(list)]
+endfunction
+"}}}
+function! dynacomp#get_inputedargs(cmdline) "{{{
+  return split(a:cmdline, '\%(\\\@<!\s\)\+')
 endfunction
 "}}}
 
@@ -390,6 +396,10 @@ function! s:default_prompt(precursor, onpostcursor) "{{{
 endfunction
 "}}}
 function! s:default_submit(input) "{{{
+endfunction
+"}}}
+function! s:default_compinsert(arglead, selected_candidate) "{{{
+  return substitute(substitute(a:selected_candidate, "\t.*$", '', ''), '^'.a:arglead, '', '')
 endfunction
 "}}}
 "==================
