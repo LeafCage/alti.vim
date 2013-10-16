@@ -458,16 +458,18 @@ function! s:_writecachefile(filename, list) "{{{
 endfunction
 "}}}
 "s:cmpwin
+let s:MWMAX = 10
+let s:MWMIN = 1
 function! s:_get_matchwin() "{{{
   if !has_key(g:, 'dynacomp_match_window')
-    return {'pos': 'bottom', 'order': 'ttb', 'max': 10, 'min': 1, 'resultslimit': min([10, &lines])}
+    return {'pos': 'bottom', 'order': 'ttb', 'max': s:MWMAX, 'min': s:MWMIN, 'resultslimit': min([s:MWMAX, &lines])}
   end
   let _ = {}
   let match_window = g:dynacomp_match_window
   let _.pos = match_window=~'top\|bottom' ? matchstr(match_window, 'top\|bottom') : 'bottom'
   let _.order = match_window=~'order:[^,]\+' ? matchstr(match_window, 'order:\zs[^,]\+') : 'ttb'
-  let _.max = match_window=~'max:[^,]\+' ? str2nr(matchstr(match_window, 'max:\zs\d\+')) : 10
-  let _.min = match_window=~'min:[^,]\+' ? str2nr(matchstr(match_window, 'min:\zs\d\+')) : 1
+  let _.max = match_window=~'max:[^,]\+' ? str2nr(matchstr(match_window, 'max:\zs\d\+')) : s:MWMAX
+  let _.min = match_window=~'min:[^,]\+' ? str2nr(matchstr(match_window, 'min:\zs\d\+')) : s:MWMIN
   let [_.max, _.min] = [max([_.max, 1]), max(_.min, 1)]
   let _.min = min([_.min, _.max])
   let _.resultslimit = match_window=~'results:[^,]\+' ? str2nr(matchstr(match_window, 'results:\zs\d\+')) : min([_.max, &lines])
