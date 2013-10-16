@@ -6,8 +6,16 @@ let g:dynacomp_cache_dir = get(g:, 'dynacomp_cache_dir', '~/.cache/dynacomp')
 "======================================
 aug DynaComp
   autocmd!
+  autocmd BufEnter DynaComp   call s:refuse_unauthorized_access()
   autocmd BufLeave DynaComp   if has_key(s:, 'cmpwin')| call s:cmpwin.close()| end
 aug END
+function! s:refuse_unauthorized_access() "{{{
+  if !has_key(s:, 'cmpwin') && has_key(s:, 'dynacomp_bufnr')
+    exe s:dynacomp_bufnr.'bw!'
+  end
+endfunction
+"}}}
+
 let s:prtmaps = {}
 let s:prtmaps['PrtBS()'] = ['<BS>', '<C-]>']
 let s:prtmaps['PrtDelete()'] = ['<Del>', '<C-d>']
@@ -155,6 +163,7 @@ let s:_cmpwin = {}
 function! s:new_cmpwin(define) "{{{
   let restcmds = {'winrestcmd': winrestcmd(), 'lines': &lines, 'winnr': winnr('$')}
   silent! exe 'keepalt botright 1new DynaComp'
+  let s:dynacomp_bufnr = bufnr('%')
   abclear <buffer>
   setl noswf nonu nobl nowrap nolist nospell nocuc winfixheight nohlsearch fdc=0 fdl=99 tw=0 bt=nofile bufhidden=unload nocul
   if v:version > 702
