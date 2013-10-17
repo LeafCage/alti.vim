@@ -279,7 +279,6 @@ function! s:_cmpwin.buildview() "{{{
     exe 'keepj norm! '. (self.mw.order=='btt' ? 'G' : 'gg'). '1|'
   end
   "call self._refresh_highlight()
-  call s:prompt.echo()
 endfunction
 "}}}
 function! s:_cmpwin._refresh_highlight() "{{{
@@ -423,6 +422,7 @@ function! dynacomp#init(define) "{{{
   call s:_mapping_term_arrowkeys()
   call s:_mapping_prtmaps()
   call s:cmpwin.buildview()
+  call s:prompt.echo()
 endfunction
 "}}}
 
@@ -552,6 +552,7 @@ function! s:PrtAdd(char) "{{{
   call s:prompt.append(a:char)
   call s:cmpwin.update_candidates()
   call s:cmpwin.buildview()
+  call s:prompt.echo()
 endfunction
 "}}}
 function! s:PrtBS() "{{{
@@ -559,6 +560,7 @@ function! s:PrtBS() "{{{
   call s:prompt.bs()
   call s:cmpwin.update_candidates()
   call s:cmpwin.buildview()
+  call s:prompt.echo()
 endfunction
 "}}}
 function! s:PrtDelete() "{{{
@@ -566,6 +568,7 @@ function! s:PrtDelete() "{{{
   call s:prompt.delete()
   call s:cmpwin.update_candidates()
   call s:cmpwin.buildview()
+  call s:prompt.echo()
 endfunction
 "}}}
 function! s:PrtDeleteWord() "{{{
@@ -573,6 +576,7 @@ function! s:PrtDeleteWord() "{{{
   call s:prompt.delete_word()
   call s:cmpwin.update_candidates()
   call s:cmpwin.buildview()
+  call s:prompt.echo()
 endfunction
 "}}}
 function! s:PrtClear() "{{{
@@ -580,6 +584,7 @@ function! s:PrtClear() "{{{
   call s:prompt.clear()
   call s:cmpwin.update_candidates()
   call s:cmpwin.buildview()
+  call s:prompt.echo()
 endfunction
 "}}}
 function! s:PrtInsert(...) "{{{
@@ -614,29 +619,34 @@ function! s:PrtHistory(crement) "{{{
   call s:prompt.insert_history(a:crement)
   call s:cmpwin.update_candidates()
   call s:cmpwin.buildview()
+  call s:prompt.echo()
 endfunction
 "}}}
 function! s:PrtCurStart() "{{{
   if s:prompt.cursor_start()
     call s:cmpwin.buildview()
+    call s:prompt.echo()
   endif
 endfunction
 "}}}
 function! s:PrtCurEnd() "{{{
   if s:prompt.cursor_end()
     call s:cmpwin.buildview()
+    call s:prompt.echo()
   endif
 endfunction
 "}}}
 function! s:PrtCurLeft() "{{{
   if s:prompt.cursor_left()
     call s:cmpwin.buildview()
+    call s:prompt.echo()
   endif
 endfunction
 "}}}
 function! s:PrtCurRight() "{{{
   if s:prompt.cursor_right()
     call s:cmpwin.buildview()
+    call s:prompt.echo()
   endif
 endfunction
 "}}}
@@ -659,6 +669,7 @@ function! s:PrtSelectInsert() "{{{
   call s:histholder.reset()
   call s:cmpwin.select_insert()
   call s:cmpwin.buildview()
+  call s:prompt.echo()
 endfunction
 "}}}
 
