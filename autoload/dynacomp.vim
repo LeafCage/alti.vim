@@ -21,8 +21,6 @@ let s:prtmaps['PrtBS()'] = ['<BS>', '<C-]>']
 let s:prtmaps['PrtDelete()'] = ['<Del>', '<C-d>']
 let s:prtmaps['PrtDeleteWord()'] = ['<C-w>']
 let s:prtmaps['PrtClear()'] = ['<C-u>']
-let s:prtmaps['PrtInsert("c")'] = ['<MiddleMouse>', '<Insert>']
-let s:prtmaps['PrtInsert()'] = ['<C-\>']
 let s:prtmaps['PrtInsertReg()'] = ['<C-r>']
 let s:prtmaps['PrtHistory(-1)'] = ['<C-n>']
 let s:prtmaps['PrtHistory(1)'] = ['<C-p>']
@@ -41,7 +39,7 @@ let s:prtmaps['PrtSelectInsert()'] = ['<Tab>']
 
 let s:prtmaps['PrtExit()'] = ['<Esc>', '<C-c>', '<C-g>']
 let s:prtmaps['PrtSubmit()'] = ['<CR>', '<2-LeftMouse>']
-let s:prtmaps['Nop()'] = ['<S-Tab>', '<C-x>', '<C-CR>', '<C-s>', '<C-t>', '<C-v>', '<RightMouse>', '<C-up>', '<C-down>', '<C-z>', '<C-o>', '<C-y>']
+let s:prtmaps['Nop()'] = ['<S-Tab>', '<C-x>', '<C-CR>', '<C-s>', '<C-t>', '<C-v>', '<RightMouse>', '<C-up>', '<C-down>', '<C-z>', '<C-o>', '<C-y>', '<MiddleMouse>', '<Insert>', '<C-\>']
 
 call extend(s:prtmaps, get(g:, 'dynacomp_prompt_mappings', {}))
 call filter(s:prtmaps, 'v:val!=[]')
@@ -585,10 +583,6 @@ function! s:PrtClear() "{{{
   call s:cmpwin.update_candidates()
   call s:cmpwin.buildview()
   call s:prompt.echo()
-endfunction
-"}}}
-function! s:PrtInsert(...) "{{{
-  call s:histholder.reset()
 endfunction
 "}}}
 function! s:PrtInsertReg() "{{{
