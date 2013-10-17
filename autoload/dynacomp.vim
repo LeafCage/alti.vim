@@ -30,8 +30,8 @@ let s:prtmaps['PrtCurStart()'] = ['<C-a>']
 let s:prtmaps['PrtCurEnd()'] = ['<C-e>']
 let s:prtmaps['PrtCurLeft()'] = ['<C-h>', '<Left>', '<C-^>']
 let s:prtmaps['PrtCurRight()'] = ['<C-l>', '<Right>']
-let s:prtmaps['PrtPageNext()'] = ['<PageDown>', '<kPageDown>']
-let s:prtmaps['PrtPagePrevious()'] = ['<PageUp>', '<kPageUp>']
+let s:prtmaps['PrtPageNext()'] = ['<C-f>', '<PageDown>', '<kPageDown>']
+let s:prtmaps['PrtPagePrevious()'] = ['<C-b>', '<PageUp>', '<kPageUp>']
 
 let s:prtmaps['PrtSelectMove("j")'] = ['<C-j>', '<Down>']
 let s:prtmaps['PrtSelectMove("k")'] = ['<C-k>', '<Up>']
@@ -41,7 +41,7 @@ let s:prtmaps['PrtSelectInsert()'] = ['<Tab>']
 
 let s:prtmaps['PrtExit()'] = ['<Esc>', '<C-c>', '<C-g>']
 let s:prtmaps['PrtSubmit()'] = ['<CR>', '<2-LeftMouse>']
-let s:prtmaps['Nop()'] = ['<S-Tab>', '<C-x>', '<C-CR>', '<C-s>', '<C-t>', '<C-v>', '<RightMouse>', '<C-f>', '<C-up>', '<C-b>', '<C-down>', '<C-z>', '<C-o>', '<C-y>']
+let s:prtmaps['Nop()'] = ['<S-Tab>', '<C-x>', '<C-CR>', '<C-s>', '<C-t>', '<C-v>', '<RightMouse>', '<C-up>', '<C-down>', '<C-z>', '<C-o>', '<C-y>']
 
 call extend(s:prtmaps, get(g:, 'dynacomp_prompt_mappings', {}))
 call filter(s:prtmaps, 'v:val!=[]')
@@ -411,7 +411,6 @@ endfunction
 "=============================================================================
 "Main
 let s:dfl_define = {'default_text': '', 'static_text': '', 'prompt': 's:default_prompt', 'prompt_hl': 'Comment', 'comp': 's:default_comp', 'compinsert': 's:default_compinsert', 'submit': 's:default_submit', 'append_compsep': 1}
-"dynacomp#init({'name': 'name', 'prompt': '>', 'comp': 'compfunc(precrs,oncrs,postcrs)', 'accept': 'acceptfunc(splitmode,str)', 'exit': 'exitfunc()'})
 function! dynacomp#init(define) "{{{
   call extend(a:define, s:dfl_define, 'keep')
   let s:regholder = s:new_regholder()
@@ -480,15 +479,13 @@ endfunction
 function! s:_mapping_prtmaps() "{{{
   let maps = copy(s:prtmaps)
   let nop = remove(maps, 'Nop()')
+  for lhs in nop
+    exe 'nnoremap <buffer><silent>' lhs ':<C-u>call <SID>Nop()<CR>'
+  endfor
   for [key, vals] in items(maps)
     for lhs in vals
       exe 'nnoremap <buffer><silent>' lhs ':<C-u>call <SID>'.key.'<CR>'
     endfor
-  endfor
-  for lhs in nop
-    if maparg(lhs)!~'Prt'
-      exe 'nnoremap <buffer><silent>' lhs ':<C-u>call <SID>Nop()<CR>'
-    end
   endfor
 endfunction
 "}}}
