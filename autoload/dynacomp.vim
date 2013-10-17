@@ -160,8 +160,8 @@ endfunction
 "}}}
 "==================
 let s:_argleadsholder = {}
-function! s:new_argleadsholder() "{{{
-  let _ = {'arglead': '', 'ordinal': 1, 'save_precursor': '', 'cursoridx': 0}
+function! s:new_argleadsholder(define) "{{{
+  let _ = {'arglead': '', 'ordinal': 1, 'save_precursor': '', 'cursoridx': strlen(a:define.static_text)+1}
   call extend(_, s:_argleadsholder)
   return _
 endfunction
@@ -203,7 +203,7 @@ function! s:new_cmpwin(define) "{{{
   call s:_guicursor_enter()
   sil! exe 'hi DynaCompLinePre '.( has("gui_running") ? 'gui' : 'cterm' ).'fg=bg'
   sy match DynaCompLinePre '^>'
-  let _ = {'name': a:define.name, 'rest': restcmds, 'mw': s:_get_matchwin(), 'compfunc': a:define.comp, 'compsep': a:define.append_compsep ? ' ' : '', 'compinsert': a:define.compinsert, 'candidates': []}
+  let _ = {'rest': restcmds, 'mw': s:_get_matchwin(), 'compfunc': a:define.comp, 'compsep': a:define.append_compsep ? ' ' : '', 'compinsert': a:define.compinsert, 'candidates': []}
   if has_key(a:define, 'exit')
     let _.exitfunc = a:define.exit
   endif
@@ -306,13 +306,13 @@ function! s:new_prompt(define) "{{{
   exe 'hi link DynaCompPrtBase' a:define.prompt_hl
   hi link DynaCompPrtText     Normal
   hi link DynaCompPrtCursor   Constant
-  let _ = {'input': [a:define.default_text, ''], 'prtbasefunc': a:define.prompt, 'submitfunc': a:define.submit, 'inputline': a:define.default_text}
+  let _ = {'input': [a:define.default_text, ''], 'prtbasefunc': a:define.prompt, 'submitfunc': a:define.submit, 'inputline': a:define.default_text, 'static_text': a:define.static_text=='' ? '' : a:define.static_text. ' ' }
   call extend(_, s:_prompt, 'keep')
   return _
 endfunction
 "}}}
 function! s:_prompt.get_inputline() "{{{
-  let self.inputline = join(self.input, '')
+  let self.inputline = self.static_text. join(self.input, '')
   return self.inputline
 endfunction
 "}}}
@@ -326,7 +326,7 @@ function! s:_prompt.echo() "{{{
   let inputs = map([self.input[0], get(onpostcurs, 1, ''), get(onpostcurs, 2, '')], 'escape(v:val, ''"\'')')
   let is_cursorspace = inputs[1]=='' || inputs[1]==' '
   let [hiactive, hicursor] = ['DynaCompPrtText', (is_cursorspace? 'DynaCompPrtBase': 'DynaCompPrtCursor')]
-  exe 'echoh DynaCompPrtBase| echon "'. self._get_prtbase(). '"| echoh' hiactive '| echon "'. inputs[0]. '"'
+  exe 'echoh DynaCompPrtBase| echon "'. self._get_prtbase(). '"| echoh' hiactive '| echon "'. self.static_text. inputs[0]. '"'
   exe 'echoh' hicursor '| echon "'. (is_cursorspace? '_': inputs[1]). '"| echoh' hiactive '| echon "'. inputs[2].'"| echoh NONE'
 endfunction
 "}}}
@@ -398,7 +398,7 @@ endfunction
 
 "=============================================================================
 "Main
-let s:dfl_define = {'default_text': '', 'prompt': 's:default_prompt', 'prompt_hl': 'Comment', 'comp': 's:default_comp', 'compinsert': 's:default_compinsert', 'submit': 's:default_submit', 'append_compsep': 1}
+let s:dfl_define = {'default_text': '', 'static_text': '', 'prompt': 's:default_prompt', 'prompt_hl': 'Comment', 'comp': 's:default_comp', 'compinsert': 's:default_compinsert', 'submit': 's:default_submit', 'append_compsep': 1}
 "dynacomp#init({'name': 'name', 'prompt': '>', 'comp': 'compfunc(precrs,oncrs,postcrs)', 'accept': 'acceptfunc(splitmode,str)', 'exit': 'exitfunc()'})
 function! dynacomp#init(define) "{{{
   call extend(a:define, s:dfl_define, 'keep')
@@ -406,7 +406,7 @@ function! dynacomp#init(define) "{{{
   let s:glboptholder = s:new_glboptholder()
   let s:cmpwin = s:new_cmpwin(a:define)
   let s:prompt = s:new_prompt(a:define)
-  let s:argleadsholder = s:new_argleadsholder()
+  let s:argleadsholder = s:new_argleadsholder(a:define)
   call s:cmpwin.update_candidates()
   call s:_mapping_input()
   call s:_mapping_term_arrowkeys()
