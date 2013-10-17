@@ -30,18 +30,18 @@ let s:prtmaps['PrtCurStart()'] = ['<C-a>']
 let s:prtmaps['PrtCurEnd()'] = ['<C-e>']
 let s:prtmaps['PrtCurLeft()'] = ['<C-h>', '<Left>', '<C-^>']
 let s:prtmaps['PrtCurRight()'] = ['<C-l>', '<Right>']
+let s:prtmaps['PrtPageNext()'] = ['<PageDown>', '<kPageDown>']
+let s:prtmaps['PrtPagePrevious()'] = ['<PageUp>', '<kPageUp>']
 
 let s:prtmaps['PrtSelectMove("j")'] = ['<C-j>', '<Down>']
 let s:prtmaps['PrtSelectMove("k")'] = ['<C-k>', '<Up>']
 let s:prtmaps['PrtSelectMove("t")'] = ['<Home>', '<kHome>']
 let s:prtmaps['PrtSelectMove("b")'] = ['<End>', '<kEnd>']
-let s:prtmaps['PrtSelectMove("u")'] = ['<PageUp>', '<kPageUp>']
-let s:prtmaps['PrtSelectMove("d")'] = ['<PageDown>', '<kPageDown>']
-let s:prtmaps['PrtSelectInsert()'] = ['<C-y>', '<Tab>']
+let s:prtmaps['PrtSelectInsert()'] = ['<Tab>']
 
 let s:prtmaps['PrtExit()'] = ['<Esc>', '<C-c>', '<C-g>']
 let s:prtmaps['PrtSubmit()'] = ['<CR>', '<2-LeftMouse>']
-let s:prtmaps['Nop()'] = ['<S-Tab>', '<C-x>', '<C-CR>', '<C-s>', '<C-t>', '<C-v>', '<RightMouse>', '<C-f>', '<C-up>', '<C-b>', '<C-down>', '<C-z>', '<C-o>']
+let s:prtmaps['Nop()'] = ['<S-Tab>', '<C-x>', '<C-CR>', '<C-s>', '<C-t>', '<C-v>', '<RightMouse>', '<C-f>', '<C-up>', '<C-b>', '<C-down>', '<C-z>', '<C-o>', '<C-y>']
 
 call extend(s:prtmaps, get(g:, 'dynacomp_prompt_mappings', {}))
 call filter(s:prtmaps, 'v:val!=[]')
@@ -203,7 +203,7 @@ function! s:new_cmpwin(define) "{{{
   call s:_guicursor_enter()
   sil! exe 'hi DynaCompLinePre '.( has("gui_running") ? 'gui' : 'cterm' ).'fg=bg'
   sy match DynaCompLinePre '^>'
-  let _ = {'rest': restcmds, 'mw': s:_get_matchwin(), 'compfunc': a:define.comp, 'compsep': a:define.append_compsep ? ' ' : '', 'compinsert': a:define.compinsert, 'candidates': []}
+  let _ = {'rest': restcmds, 'mw': s:_get_matchwin(), 'compfunc': a:define.comp, 'compsep': a:define.append_compsep ? ' ' : '', 'compinsert': a:define.compinsert, 'candidates': [], 'page': 1, 'lastpage': 1}
   if has_key(a:define, 'exit')
     let _.exitfunc = a:define.exit
   endif
@@ -215,22 +215,61 @@ function! s:_cmpwin.update_candidates() "{{{
   let self.candidates = call(self.compfunc, s:argleadsholder.get_funcargs())
 endfunction
 "}}}
-function! s:_cmpwin._get_viewcandidates(lastidx) "{{{
-  let candidates = self.candidates[:(a:lastidx)]
+function! s:_cmpwin._get_viewcandidates(firstidx, lastidx) "{{{
+  let candidates = self.candidates[(a:firstidx):(a:lastidx)]
   return self.mw.order=='btt' ? reverse(candidates) : candidates
 endfunction
 "}}}
 function! s:_cmpwin._get_selected_candidate() "{{{
-  let viewcandidates = self._get_viewcandidates(-1)
+  let viewcandidates = self._get_viewcandidates(0,-1)
   return get(viewcandidates, self.selected_row-1, '')
+endfunction
+"}}}
+function! s:_cmpwin.select_move(direction) "{{{
+  let save_crrrow = line('.')
+  let wht = winheight(0)
+  let directions = {'t': 'gg','b': 'G','u': wht.'k','d': wht.'j','j': 'j','k': 'k'}
+  exe 'keepj norm!' directions[a:direction]
+  if line('.')==save_crrrow && a:direction=~'[jk]'
+    exe 'keepj norm!' a:direction=='j' ? 'gg' : 'G'
+  endif
+  let self.selected_row = line('.')
+endfunction
+"}}}
+function! s:_cmpwin.select_insert() "{{{
+  let self.selected_row = line('.')
+  let selected = self._get_selected_candidate()
+  if selected==''
+    return
+  end
+  call s:argleadsholder.update_arglead()
+  let str = call(self.compinsert, [s:argleadsholder.arglead, selected])
+  call s:prompt.append(str. self.compsep)
+  let save_candidates = copy(self.candidates)
+  call self.update_candidates()
+  if self.candidates != save_candidates
+    unlet! self.selected_row
+  end
+endfunction
+"}}}
+function! s:_cmpwin.turn_page(crement) "{{{
+  let self.page += a:crement
+  let self.page = self.page<1 ? self.lastpage : self.page>self.lastpage ? 1 : self.page
 endfunction
 "}}}
 function! s:_cmpwin.buildview() "{{{
   setl ma
   let candidates_len = len(self.candidates)
   let height = min([max([self.mw.min, candidates_len]), self.mw.max, &lines])
+  let self.lastpage = (candidates_len-1) / height + 1
+  let self.page = self.page > self.lastpage ? self.lastpage : self.page
+  let maxlenof_height = height*(self.page-1)
+  let candidates = self._get_viewcandidates(maxlenof_height, height*self.page-1)
+  if self.page == self.lastpage
+    let _ = candidates_len % maxlenof_height
+    let height = _==0 ? height : _
+  end
   sil! exe '%delete _ | resize' height
-  let candidates = self._get_viewcandidates(candidates_len > height ? height-1 : -1)
   call map(candidates, '"> ". v:val')
   call setline(1, candidates)
   setl noma
@@ -271,33 +310,6 @@ function! s:_cmpwin.close() "{{{
   call s:histholder.save()
   call s:glboptholder.untap()
   unlet s:cmpwin s:prompt s:regholder s:argleadsholder
-endfunction
-"}}}
-function! s:_cmpwin.select_move(direction) "{{{
-  let save_crrrow = line('.')
-  let wht = winheight(0)
-  let directions = {'t': 'gg','b': 'G','u': wht.'k','d': wht.'j','j': 'j','k': 'k'}
-  exe 'keepj norm!' directions[a:direction]
-  if line('.')==save_crrrow && a:direction=~'[jk]'
-    exe 'keepj norm!' a:direction=='j' ? 'gg' : 'G'
-  endif
-  let self.selected_row = line('.')
-endfunction
-"}}}
-function! s:_cmpwin.select_insert() "{{{
-  let self.selected_row = line('.')
-  let selected = self._get_selected_candidate()
-  if selected==''
-    return
-  end
-  call s:argleadsholder.update_arglead()
-  let str = call(self.compinsert, [s:argleadsholder.arglead, selected])
-  call s:prompt.append(str. self.compsep)
-  let save_candidates = copy(self.candidates)
-  call self.update_candidates()
-  if self.candidates != save_candidates
-    unlet! self.selected_row
-  end
 endfunction
 "}}}
 "==================
@@ -629,6 +641,16 @@ function! s:PrtCurRight() "{{{
   if s:prompt.cursor_right()
     call s:cmpwin.buildview()
   endif
+endfunction
+"}}}
+function! s:PrtPageNext() "{{{
+  call s:cmpwin.turn_page(1)
+  call s:cmpwin.buildview()
+endfunction
+"}}}
+function! s:PrtPagePrevious() "{{{
+  call s:cmpwin.turn_page(-1)
+  call s:cmpwin.buildview()
 endfunction
 "}}}
 
