@@ -221,9 +221,18 @@ function! s:_cmpwin._get_viewcandidates(firstidx, lastidx) "{{{
   return self.cw.order=='btt' ? reverse(candidates) : candidates
 endfunction
 "}}}
-function! s:_cmpwin._get_selected_candidate() "{{{
-  let viewcandidates = self._get_viewcandidates(0,-1)
-  return get(viewcandidates, self.selected_row-1, '')
+function! s:_cmpwin._get_buildelm() "{{{
+  let candidates_len = len(self.candidates)
+  let height = min([max([self.cw.min, candidates_len]), self.cw.max, &lines])
+  let self.lastpage = (candidates_len-1) / height + 1
+  let self.page = self.page > self.lastpage ? self.lastpage : self.page
+  let maxlenof_height = height*(self.page-1)
+  let candidates = self._get_viewcandidates(maxlenof_height, height*self.page-1)
+  if self.page == self.lastpage
+    let _ = candidates_len % maxlenof_height
+    let height = _==0 ? height : _
+  end
+  return [candidates, height]
 endfunction
 "}}}
 function! s:_cmpwin.select_move(direction) "{{{
@@ -239,7 +248,8 @@ endfunction
 "}}}
 function! s:_cmpwin.select_insert() "{{{
   let self.selected_row = line('.')
-  let selected = self._get_selected_candidate()
+  let candidates = self._get_buildelm()[0]
+  let selected = get(candidates, self.selected_row-1, '')
   if selected==''
     return
   end
@@ -260,16 +270,7 @@ endfunction
 "}}}
 function! s:_cmpwin.buildview() "{{{
   setl ma
-  let candidates_len = len(self.candidates)
-  let height = min([max([self.cw.min, candidates_len]), self.cw.max, &lines])
-  let self.lastpage = (candidates_len-1) / height + 1
-  let self.page = self.page > self.lastpage ? self.lastpage : self.page
-  let maxlenof_height = height*(self.page-1)
-  let candidates = self._get_viewcandidates(maxlenof_height, height*self.page-1)
-  if self.page == self.lastpage
-    let _ = candidates_len % maxlenof_height
-    let height = _==0 ? height : _
-  end
+  let [candidates, height]= self._get_buildelm()
   sil! exe '%delete _ | resize' height
   call map(candidates, '"> ". v:val')
   call setline(1, candidates)
