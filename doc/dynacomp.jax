@@ -28,6 +28,7 @@ License : MIT license  {{{
 使い方				|dynacomp-usage|
 インターフェイス		|dynacomp-interface|
   変数				  |dynacomp-variables|
+  キーマッピング		  |dynacomp-key-mappings|
   関数				  |dynacomp-functions|
 TODO				|dynacomp-todo|
 
@@ -124,25 +125,25 @@ g:dynacomp_prompt_mappings			*g:dynacomp_prompt_mappings*
 	  \ 'PrtPagePrevious()': ['<C-y>'],
 	  \ }
 <
-						*dynacomp-keymappings*
+					*dynacomp-default-key-mappings*
 	以下は標準で定義されるものである。
 >
  {
- \ 'PrtBS()': ['<BS>', '<C-]>'],	入力を1文字バックスペース
- \ 'PrtDelete()': ['<Del>', '<C-d>'],	入力を1文字デリート
- \ 'PrtDeleteWord()': ['<C-w>'],	入力の1単語を削除
- \ 'PrtClear()': ['<C-u>'],		入力をクリアする
- \ 'PrtInsertReg()': ['<C-r>'],		レジスタ挿入モードになる（後述）
- \ 'PrtHistory(-1)': ['<C-n>'],		履歴を先に進める
- \ 'PrtHistory(1)': ['<C-p>'],		履歴を前に遡る
- \ 'PrtCurStart()': ['<C-a>'],		入力欄の先頭へ
- \ 'PrtCurEnd()': ['<C-e>'],		入力欄の末尾へ
+ \ 'PrtBS()': ['<BS>', '<C-]>'],		入力を1文字バックスペース
+ \ 'PrtDelete()': ['<Del>', '<C-d>'],		入力を1文字デリート
+ \ 'PrtDeleteWord()': ['<C-w>'],		入力の1単語を削除
+ \ 'PrtClear()': ['<C-u>'],			入力をクリアする
+ \ 'PrtInsertReg()': ['<C-r>'],			レジスタ挿入モードになる(後述)
+ \ 'PrtHistory(-1)': ['<C-n>'],			履歴を先に進める
+ \ 'PrtHistory(1)': ['<C-p>'],			履歴を前に遡る
+ \ 'PrtCurStart()': ['<C-a>'],			入力欄の先頭へ
+ \ 'PrtCurEnd()': ['<C-e>'],			入力欄の末尾へ
  \ 'PrtCurLeft()': ['<C-h>', '<Left>', '<C-^>'],	入力欄カーソルを左へ
  \ 'PrtCurRight()': ['<C-l>', '<Right>'],		入力欄カーソルを右へ
  \ 'PrtPageNext()': ['<C-f>', '<PageDown>', '<kPageDown>'],
-		候補が多すぎて窓に入らないとき、次のページへとめくる
+			候補が多すぎて窓に入らないとき、次のページへとめくる
  \ 'PrtPagePrevious()': ['<C-b>', '<PageUp>', '<kPageUp>'],
-		候補が多すぎて窓に入らないとき、前のページへとめくる
+			候補が多すぎて窓に入らないとき、前のページへとめくる
  \ 'PrtSelectMove("j")': ['<C-j>', '<Down>'],		候補窓の選択を1つ下へ
  \ 'PrtSelectMove("k")': ['<C-k>', '<Up>'],		候補窓の選択を1つ上へ
  \ 'PrtSelectMove("t")': ['<Home>', '<kHome>'],		候補窓の先頭へ
@@ -175,6 +176,12 @@ g:dynacomp_getreg_mappings			*g:dynacomp_getreg_mappings*
  \ '<cfile>': ['<C-p>'],	<C-r><C-p> gfと同様に'path'を使って展開された
 				、事前のカーソル位置のファイル名
  \ }
+
+
+------------------------------------------------------------------------------
+キーマッピング					*dynacomp-key-mappings*
+
+|dynacomp-default-key-mappings|を参照。
 
 
 ------------------------------------------------------------------------------
