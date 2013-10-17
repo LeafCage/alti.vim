@@ -671,7 +671,7 @@ function! s:PrtSubmit() "{{{
   let [submitfunc, inputline] = s:prompt.get_submit_elms()
   call s:cmpwin.close()
   wincmd p
-  call call(submitfunc, inputline)
+  call call(submitfunc, [inputline])
 endfunction
 "}}}
 function! s:Nop() "{{{
