@@ -318,7 +318,7 @@ function! s:new_prompt(define) "{{{
   exe 'hi link DynaCompPrtBase' a:define.prompt_hl
   hi link DynaCompPrtText     Normal
   hi link DynaCompPrtCursor   Constant
-  let _ = {'input': [a:define.default_text, ''], 'prtbasefunc': a:define.prompt, 'submitedfunc': a:define.submited, 'inputline': a:define.default_text, 'static_text': a:define.static_text=='' ? '' : a:define.static_text. ' ' }
+  let _ = {'input': [a:define.default_text, ''], 'prtbasefunc': a:define.prompt, 'submitedfunc': a:define.submited, 'canceledfunc': a:define.canceled, 'inputline': a:define.default_text, 'static_text': a:define.static_text=='' ? '' : a:define.static_text. ' ' }
   call extend(_, s:_prompt, 'keep')
   return _
 endfunction
@@ -328,8 +328,8 @@ function! s:_prompt.get_inputline() "{{{
   return self.inputline
 endfunction
 "}}}
-function! s:_prompt.get_submit_elms() "{{{
-  return [self.submitedfunc, self.get_inputline()]
+function! s:_prompt.get_exitfunc_elms(exitfuncname) "{{{
+  return [self[a:exitfuncname], self.get_inputline()]
 endfunction
 "}}}
 function! s:_prompt.echo() "{{{
@@ -449,6 +449,9 @@ function! s:default_compinsert(arglead, selected_candidate) "{{{
 endfunction
 "}}}
 function! s:default_submited(input) "{{{
+endfunction
+"}}}
+function! s:default_canceled(input) "{{{
 endfunction
 "}}}
 "==================
@@ -671,12 +674,14 @@ endfunction
 "}}}
 
 function! s:PrtExit() "{{{
+  let [canceledfunc, inputline] = s:prompt.get_exitfunc_elms('canceledfunc')
   call s:cmpwin.close()
   wincmd p
+  call call(canceledfunc, [inputline])
 endfunction
 "}}}
 function! s:PrtSubmit() "{{{
-  let [submitedfunc, inputline] = s:prompt.get_submit_elms()
+  let [submitedfunc, inputline] = s:prompt.get_exitfunc_elms('submitedfunc')
   call s:cmpwin.close()
   wincmd p
   call call(submitedfunc, [inputline])
