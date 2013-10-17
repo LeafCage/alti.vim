@@ -74,7 +74,7 @@ function! s:histholder.reset() "{{{
 endfunction
 "}}}
 function! s:histholder.save() "{{{
-  let str = s:prompt.get_joinedinput()
+  let str = s:prompt.get_inputline()
   if str=~'^\s*$' || str==get(self.hists, 1, "\n") || !g:dynacomp_max_history
     return
   end
@@ -88,7 +88,7 @@ function! s:histholder.save() "{{{
 endfunction
 "}}}
 function! s:histholder.get_nexthist(crement) "{{{
-  let self.hists[0] = self.is_inputsaved ? self.hists[0] : s:prompt.get_joinedinput()
+  let self.hists[0] = self.is_inputsaved ? self.hists[0] : s:prompt.get_inputline()
   let self.hists[0] = self.hists[0]==get(self.hists, 1, "\n") ? '' : self.hists[0]
   let self.is_inputsaved = 1
   let histlen = len(self.hists)
@@ -159,6 +159,37 @@ function! s:_regholder.expr() "{{{
 endfunction
 "}}}
 "==================
+let s:_argleadsholder = {}
+function! s:new_argleadsholder() "{{{
+  let _ = {'arglead': '', 'ordinal': 1, 'save_precursor': '', 'cursoridx': 0}
+  call extend(_, s:_argleadsholder)
+  return _
+endfunction
+"}}}
+function! s:_argleadsholder.get_funcargs() "{{{
+  call self._update_cursoridx()
+  call self.update_arglead()
+  return [self.arglead, s:prompt.get_inputline(), self.cursoridx]
+endfunction
+"}}}
+function! s:_argleadsholder.update_arglead() "{{{
+  if self.save_precursor == s:prompt.input[0]
+    return
+  end
+  let self.save_precursor = s:prompt.input[0]
+  let list = split(self.save_precursor, '\%(\%(^\|\\\)\@<!\s\)\+', 1)
+  let list[0] = substitute(list[0], '^\s*', '', '')
+  let self.arglead = list[-1]
+  let self.ordinal = len(list)
+endfunction
+"}}}
+function! s:_argleadsholder._update_cursoridx() "{{{
+  if self.save_precursor != s:prompt.input[0]
+    let self.cursoridx = strlen(s:prompt.input[0])
+  endif
+endfunction
+"}}}
+"==================
 let s:_cmpwin = {}
 function! s:new_cmpwin(define) "{{{
   let restcmds = {'winrestcmd': winrestcmd(), 'lines': &lines, 'winnr': winnr('$')}
@@ -172,8 +203,7 @@ function! s:new_cmpwin(define) "{{{
   call s:_guicursor_enter()
   sil! exe 'hi DynaCompLinePre '.( has("gui_running") ? 'gui' : 'cterm' ).'fg=bg'
   sy match DynaCompLinePre '^>'
-  let _ = {'name': a:define.name, 'rest': restcmds, 'mw': s:_get_matchwin(), 'compfunc': a:define.comp, 'compsep': a:define.append_compsep ? ' ' : '', 'compinsert': a:define.compinsert}
-  let _.candidates = call(a:define.comp, [a:define.default_text, ''])
+  let _ = {'name': a:define.name, 'rest': restcmds, 'mw': s:_get_matchwin(), 'compfunc': a:define.comp, 'compsep': a:define.append_compsep ? ' ' : '', 'compinsert': a:define.compinsert, 'candidates': []}
   if has_key(a:define, 'exit')
     let _.exitfunc = a:define.exit
   endif
@@ -182,7 +212,7 @@ function! s:new_cmpwin(define) "{{{
 endfunction
 "}}}
 function! s:_cmpwin.update_candidates() "{{{
-  let self.candidates = call(self.compfunc, s:prompt.input)
+  let self.candidates = call(self.compfunc, s:argleadsholder.get_funcargs())
 endfunction
 "}}}
 function! s:_cmpwin._get_viewcandidates(lastidx) "{{{
@@ -193,11 +223,6 @@ endfunction
 function! s:_cmpwin._get_selected_candidate() "{{{
   let viewcandidates = self._get_viewcandidates(-1)
   return get(viewcandidates, self.selected_row-1, '')
-endfunction
-"}}}
-function! s:_cmpwin._get_argleadcutted_candidate(selected_candidate) "{{{
-  let arglead = dynacomp#get_arglead(s:prompt.input[0])[0]
-  return substitute(substitute(a:selected_candidate, "\t.*$", '', ''), '^'.arglead, '', '')
 endfunction
 "}}}
 function! s:_cmpwin.buildview() "{{{
@@ -245,7 +270,7 @@ function! s:_cmpwin.close() "{{{
   ec
   call s:histholder.save()
   call s:glboptholder.untap()
-  unlet s:cmpwin s:prompt s:regholder
+  unlet s:cmpwin s:prompt s:regholder s:argleadsholder
 endfunction
 "}}}
 function! s:_cmpwin.select_move(direction) "{{{
@@ -265,8 +290,8 @@ function! s:_cmpwin.select_insert() "{{{
   if selected==''
     return
   end
-  "call s:prompt.append(self._get_argleadcutted_candidate(selected). self.compsep)
-  let str = call(self.compinsert, [dynacomp#get_arglead(s:prompt.input[0])[0], selected])
+  call s:argleadsholder.update_arglead()
+  let str = call(self.compinsert, [s:argleadsholder.arglead, selected])
   call s:prompt.append(str. self.compsep)
   let save_candidates = copy(self.candidates)
   call self.update_candidates()
@@ -281,17 +306,18 @@ function! s:new_prompt(define) "{{{
   exe 'hi link DynaCompPrtBase' a:define.prompt_hl
   hi link DynaCompPrtText     Normal
   hi link DynaCompPrtCursor   Constant
-  let _ = {'input': [a:define.default_text, ''], 'prtbasefunc': a:define.prompt, 'submitfunc': a:define.submit}
+  let _ = {'input': [a:define.default_text, ''], 'prtbasefunc': a:define.prompt, 'submitfunc': a:define.submit, 'inputline': a:define.default_text}
   call extend(_, s:_prompt, 'keep')
   return _
 endfunction
 "}}}
-function! s:_prompt.get_joinedinput() "{{{
-  return join(self.input, '')
+function! s:_prompt.get_inputline() "{{{
+  let self.inputline = join(self.input, '')
+  return self.inputline
 endfunction
 "}}}
 function! s:_prompt.get_submit_elms() "{{{
-  return [self.submitfunc, self.input]
+  return [self.submitfunc, self.get_inputline()]
 endfunction
 "}}}
 function! s:_prompt.echo() "{{{
@@ -305,7 +331,7 @@ function! s:_prompt.echo() "{{{
 endfunction
 "}}}
 function! s:_prompt._get_prtbase() "{{{
-  let prompt = call(self.prtbasefunc, self.input)
+  let prompt = call(self.prtbasefunc, s:argleadsholder.get_funcargs())
   let nlcount = count(split(prompt, '\zs'), "\n")
   let &cmdheight = nlcount >= s:glboptholder.get_optval('cmdheight') ? nlcount+1 : s:glboptholder.get_optval('cmdheight')
   return prompt
@@ -341,7 +367,7 @@ function! s:_prompt.cursor_start() "{{{
   if self.input[0]==''
     return 0
   end
-  let self.input = ['', join(self.input, '')]
+  let self.input = ['', self.get_inputline()]
   return 1
 endfunction
 "}}}
@@ -349,7 +375,7 @@ function! s:_prompt.cursor_end() "{{{
   if self.input[1]==''
     return 0
   end
-  let self.input = [join(self.input, ''), '']
+  let self.input = [self.get_inputline(), '']
   return 1
 endfunction
 "}}}
@@ -372,7 +398,7 @@ endfunction
 
 "=============================================================================
 "Main
-let s:dfl_define = {'prompt': 's:default_prompt', 'default_text': '', 'submit': 's:default_submit', 'prompt_hl': 'Comment', 'append_compsep': 1, 'compinsert': 's:default_compinsert'}
+let s:dfl_define = {'default_text': '', 'prompt': 's:default_prompt', 'prompt_hl': 'Comment', 'comp': 's:default_comp', 'compinsert': 's:default_compinsert', 'submit': 's:default_submit', 'append_compsep': 1}
 "dynacomp#init({'name': 'name', 'prompt': '>', 'comp': 'compfunc(precrs,oncrs,postcrs)', 'accept': 'acceptfunc(splitmode,str)', 'exit': 'exitfunc()'})
 function! dynacomp#init(define) "{{{
   call extend(a:define, s:dfl_define, 'keep')
@@ -380,6 +406,8 @@ function! dynacomp#init(define) "{{{
   let s:glboptholder = s:new_glboptholder()
   let s:cmpwin = s:new_cmpwin(a:define)
   let s:prompt = s:new_prompt(a:define)
+  let s:argleadsholder = s:new_argleadsholder()
+  call s:cmpwin.update_candidates()
   call s:_mapping_input()
   call s:_mapping_term_arrowkeys()
   call s:_mapping_prtmaps()
@@ -387,28 +415,28 @@ function! dynacomp#init(define) "{{{
 endfunction
 "}}}
 
-function! dynacomp#get_arglead(precursor) "{{{
-  let list = split(a:precursor, '\%(\%(^\|\\\)\@<!\s\)\+', 1)
-  let list[0] = substitute(list[0], '^\s*', '', '')
-  return [list[-1], len(list)]
-endfunction
-"}}}
-function! dynacomp#get_inputedargs(cmdline) "{{{
-  return split(a:cmdline, '\%(\\\@<!\s\)\+')
+function! dynacomp#get_arginfo() "{{{
+  let ret = {'precursor': s:prompt.input[0], 'postcursor': s:prompt.input[1], 'inputline': s:prompt.inputline, 'cursoridx': s:argleadsholder.cursoridx, 'arglead': s:argleadsholder.arglead, 'ordinal': s:argleadsholder.ordinal}
+  let ret.args = split(s:prompt.inputline, '\%(\\\@<!\s\)\+')
+  return ret
 endfunction
 "}}}
 
 
 "=============================================================================
-function! s:default_prompt(precursor, onpostcursor) "{{{
+function! s:default_prompt(arglead, cmdline, cursorpos) "{{{
   return '>>> '
 endfunction
 "}}}
-function! s:default_submit(input) "{{{
+function! s:default_comp(arglead, cmdline, cursorpos) "{{{
+  return []
 endfunction
 "}}}
 function! s:default_compinsert(arglead, selected_candidate) "{{{
   return substitute(substitute(a:selected_candidate, "\t.*$", '', ''), '^'.a:arglead, '', '')
+endfunction
+"}}}
+function! s:default_submit(input) "{{{
 endfunction
 "}}}
 "==================
@@ -445,6 +473,7 @@ function! s:_mapping_prtmaps() "{{{
   endfor
 endfunction
 "}}}
+"==================
 let s:_dupliexcluder = {}
 function! s:new_dupliexcluder() "{{{
   let _ = {'seens': {}}
@@ -613,10 +642,10 @@ function! s:PrtExit() "{{{
 endfunction
 "}}}
 function! s:PrtSubmit() "{{{
-  let [submitfunc, input] = s:prompt.get_submit_elms()
+  let [submitfunc, inputline] = s:prompt.get_submit_elms()
   call s:cmpwin.close()
   wincmd p
-  call call(submitfunc, [join(input, '')])
+  call call(submitfunc, inputline)
 endfunction
 "}}}
 function! s:Nop() "{{{
