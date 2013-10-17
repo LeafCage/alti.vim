@@ -466,10 +466,17 @@ function! s:_mapping_term_arrowkeys() "{{{
 endfunction
 "}}}
 function! s:_mapping_prtmaps() "{{{
-  for [key, vals] in items(s:prtmaps)
+  let maps = copy(s:prtmaps)
+  let nop = remove(maps, 'Nop()')
+  for [key, vals] in items(maps)
     for lhs in vals
       exe 'nnoremap <buffer><silent>' lhs ':<C-u>call <SID>'.key.'<CR>'
     endfor
+  endfor
+  for lhs in nop
+    if maparg(lhs)!~'Prt'
+      exe 'nnoremap <buffer><silent>' lhs ':<C-u>call <SID>Nop()<CR>'
+    end
   endfor
 endfunction
 "}}}
