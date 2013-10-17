@@ -55,8 +55,8 @@ https://github.com/LeafCage/dynacomp.vim
 dynacompの定義を作る。(dynacompはライブラリだからそのままでは動かない。)
 dynacomp#init()に定義を渡す。
 dyanacompが動く。
-<C-j><C-k>で候補を選択、通常入力で絞込み、<C-f>で次の候補ページへ、
-<Tab>(<C-i>)で選択されている候補を挿入。
+<C-j><C-k>で候補を選択、通常入力で絞込み、<C-i>で次の候補ページへ、
+<C-v>(or <C-y>)で選択されている候補を挿入。
 こうしてコマンドを組み立てたら、<CR>で実行。
 コマンドを受け取った関数が何かする。やった！
 
@@ -111,9 +111,7 @@ g:dynacomp_buffer_func				*g:dynacomp_buffer_func*
 
 g:dynacomp_prompt_mappings			*g:dynacomp_prompt_mappings*
 	dynacompの標準キーマップを定義する。1ショットのマップしか定義できない
-	ことに注意。また、"Nop()"以外の機能ではキーマッピングがバッティングす
-	るとどちらが採用されるのか分からないので注意。
-	|g:ctrlp_prompt_mappings|に似せている。
+	ことに注意。 |g:ctrlp_prompt_mappings|に似せている。
 	このように定義する。
 	Example: >
 	let g:dynacomp_prompt_mappings = {
@@ -121,13 +119,21 @@ g:dynacomp_prompt_mappings			*g:dynacomp_prompt_mappings*
 	  \ 'PrtCurLeft()': ['<Left>', '<C-b>'],
 	  \ 'PrtCurRight()': ['<Right>', '<C-f>'],
 	  \ 'PrtExit()': ['<Esc>', '<C-c>', '<C-q>'],
+	  \ 'PrtSelectInsert()': ['<C-l>', '<C-y>'],
+	  \ }
+<	Example2: >
+	let g:dynacomp_prompt_mappings = {
+	  \ 'PrtBS()': ['<BS>', '<C-]>', '<C-h>'],
+	  \ 'PrtCurLeft()': ['<Left>', '<C-b>'],
+	  \ 'PrtCurRight()': ['<Right>', '<C-f>'],
+	  \ 'PrtExit()': ['<Esc>', '<C-c>', '<C-q>'],
 	  \ 'PrtPageNext()': ['<C-v>'],
 	  \ 'PrtPagePrevious()': ['<C-y>'],
+	  \ 'PrtSelectInsert()': ['<C-i>'],
 	  \ }
 <
 					*dynacomp-default-key-mappings*
-	以下は標準で定義されるものである。
->
+	以下は標準で定義されるものである。 >
  {
  \ 'PrtBS()': ['<BS>', '<C-]>'],		入力を1文字バックスペース
  \ 'PrtDelete()': ['<Del>', '<C-d>'],		入力を1文字デリート
@@ -138,17 +144,17 @@ g:dynacomp_prompt_mappings			*g:dynacomp_prompt_mappings*
  \ 'PrtHistory(1)': ['<C-p>'],			履歴を前に遡る
  \ 'PrtCurStart()': ['<C-a>'],			入力欄の先頭へ
  \ 'PrtCurEnd()': ['<C-e>'],			入力欄の末尾へ
- \ 'PrtCurLeft()': ['<C-h>', '<Left>', '<C-^>'],	入力欄カーソルを左へ
- \ 'PrtCurRight()': ['<C-l>', '<Right>'],		入力欄カーソルを右へ
- \ 'PrtPageNext()': ['<C-f>', '<PageDown>', '<kPageDown>'],
+ \ 'PrtCurLeft()': ['<C-h>', '<Left>'],		入力欄カーソルを左へ
+ \ 'PrtCurRight()': ['<C-l>', '<Right>'],	入力欄カーソルを右へ
+ \ 'PrtPageNext()': ['<C-i>', '<PageDown>', '<kPageDown>'],
 			候補が多すぎて窓に入らないとき、次のページへとめくる
- \ 'PrtPagePrevious()': ['<C-b>', '<PageUp>', '<kPageUp>'],
+ \ 'PrtPagePrevious()': ['<C-o>', '<PageUp>', '<kPageUp>'],
 			候補が多すぎて窓に入らないとき、前のページへとめくる
  \ 'PrtSelectMove("j")': ['<C-j>', '<Down>'],		候補窓の選択を1つ下へ
  \ 'PrtSelectMove("k")': ['<C-k>', '<Up>'],		候補窓の選択を1つ上へ
  \ 'PrtSelectMove("t")': ['<Home>', '<kHome>'],		候補窓の先頭へ
  \ 'PrtSelectMove("b")': ['<End>', '<kEnd>'],		候補窓の末尾へ
- \ 'PrtSelectInsert()': ['<Tab>'],		選択された候補を入力欄へ挿入
+ \ 'PrtSelectInsert()': ['<C-v>', '<C-y>'],	選択された候補を入力欄へ挿入
  \ 'PrtExit()': ['<Esc>', '<C-c>', '<C-g>'],	キャンセルしてdynacompを終了
  \ 'PrtSubmit()': ['<CR>', '<2-LeftMouse>'],	確定してdynacompを終了
 
@@ -166,9 +172,9 @@ g:dynacomp_getreg_mappings			*g:dynacomp_getreg_mappings*
 	let g:dynacomp_getreg_mappings['"'] = ['<C-e>']
 	let g:dynacomp_getreg_mappings['*'] = ['<C-y>']
 
-<	この例の場合<C-r>の後の<C-e>で レジスタ-" が、<C-y>で レジスタ-* が挿
+<	この例の場合<C-r>の後の<C-e>で レジスタ " が、<C-y>で レジスタ * が挿
 	入される。また、以下の特殊キーがセットされている。 >
- let g:dynacomp_getreg_mappings = {
+ {
  \ 'expr': ['='],		<C-r>= Expressionレジスタのように、入力を評価
 				しその結果を挿入する。
  \ '<cword>: ['<C-w>'],		<C-r><C-w> 事前のカーソル位置の単語を挿入する
@@ -189,13 +195,13 @@ g:dynacomp_getreg_mappings			*g:dynacomp_getreg_mappings*
 
 dynacomp#init({define})				*dynacomp#init*
 	この関数にdynacompの定義を書いた辞書を渡すとdynacompが実行される。
-	定義用の辞書の要素は以下の通り。いずれも省略可能。その場合、空文字や、
-	何も仕事をしない関数が利用される。
+	定義用の辞書の要素は以下の通り。いずれも省略可能。
 
-	default_text (文字列) : 開始時に標準で入力されているテキスト。
-	static_text  (文字列) : default_textと似ているが削除されることはない。
-				ユーザ定義コマンド用の補完関数をそのまま利用す
-				るときに使う。
+	default_text (文字列) :
+		開始時に標準で入力されているテキスト。既定では空文字である。
+	static_text  (文字列) :
+		default_textと似ているが削除されない。ユーザ定義コマンド用の補
+		完関数をそのまま利用するときに使う。既定では空文字である。
 	comp (関数名) :
 		補完窓に表示させる内容を文字列のリストで返す。
 		ArgLead, CmdLine, CursorPosの3つの引数を取る。
@@ -205,29 +211,29 @@ dynacomp#init({define})				*dynacomp#init*
 		なる情報が得られる（後述）。
 		また、標準のcompinsert関数はタブ文字以降を削除するようにしてい
 		るので、候補の後にタブ文字を置いて候補についての注釈を加えるこ
-		とが可能。
+		とが可能。既定関数は空リストを返す。
 	prompt (関数名) :
 		compと同じくArgLead, CmdLine, CursorPosの3つの引数を取る。
 		プロンプト文字列を返す。入力に応じてプロンプトを変化させること
-		が可能になる。
+		が可能になる。既定関数が返すプロンプト文字列は ">>> "
 	compinsert (関数名) :
 		選択された候補で補完を実行するときに、実際に挿入される文字列を
 		返す。ArgLead と SelectedCandidate(選ばれた候補)を引数に取る。
-		標準では、SelectedCandidateからArgLeadを削除した文字列を返して
-		、補完として機能するようにしている。また、タブ文字以降を削除す
-		るようにしている。これにより、候補の後にタブ文字を挟んで注釈を
-		付けることが出来る。
+		既定関数は、SelectedCandidateからArgLeadを削除した文字列を返し
+		て、補完として機能するようにしている。また、タブ文字以降を削除
+		するようにしている。これにより、候補の後にタブ文字を挟んで注釈
+		を付けることが出来る。
 	exit (関数名) :
 		終了時に呼ばれる関数。Submitしていようとキャンセルしていようと
 		その前に呼ばれる。引数は取らない。
 	submited (関数名) :
 		Submitされた後に呼ばれる関数。入力された文字列が引数として渡
-		される。
+		される。既定関数は入力文字列が空でなければ|:execute|する。
 	canceled (関数名) :
 		キャンセルされた後に呼ばれる関数。入力された文字列が引数として
-		渡される。
-	append_compsep (数値 既定値:1) :
-		非0のとき、補完時に自動で空白を挟む。
+		渡される。既定関数は何もしない。
+	append_compsep (数値) :
+		非0のとき、補完時に自動で空白を挟む。既定値は1である。
 
 
 dynacomp#get_arginfo()				*dynacomp#get_arginfo*
@@ -247,6 +253,7 @@ dynacomp#get_arginfo()				*dynacomp#get_arginfo*
 TODO						*dynacomp-todo*
 
 - ハイライトをもう少しどうにかしたい。
+- ステータスラインに情報を表示したい
 
 
 ==============================================================================

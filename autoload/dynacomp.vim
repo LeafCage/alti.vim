@@ -26,20 +26,18 @@ let s:prtmaps['PrtHistory(-1)'] = ['<C-n>']
 let s:prtmaps['PrtHistory(1)'] = ['<C-p>']
 let s:prtmaps['PrtCurStart()'] = ['<C-a>']
 let s:prtmaps['PrtCurEnd()'] = ['<C-e>']
-let s:prtmaps['PrtCurLeft()'] = ['<C-h>', '<Left>', '<C-^>']
+let s:prtmaps['PrtCurLeft()'] = ['<C-h>', '<Left>']
 let s:prtmaps['PrtCurRight()'] = ['<C-l>', '<Right>']
-let s:prtmaps['PrtPageNext()'] = ['<C-f>', '<PageDown>', '<kPageDown>']
-let s:prtmaps['PrtPagePrevious()'] = ['<C-b>', '<PageUp>', '<kPageUp>']
-
+let s:prtmaps['PrtPageNext()'] = ['<C-i>', '<PageDown>', '<kPageDown>']
+let s:prtmaps['PrtPagePrevious()'] = ['<C-o>', '<PageUp>', '<kPageUp>']
 let s:prtmaps['PrtSelectMove("j")'] = ['<C-j>', '<Down>']
 let s:prtmaps['PrtSelectMove("k")'] = ['<C-k>', '<Up>']
 let s:prtmaps['PrtSelectMove("t")'] = ['<Home>', '<kHome>']
 let s:prtmaps['PrtSelectMove("b")'] = ['<End>', '<kEnd>']
-let s:prtmaps['PrtSelectInsert()'] = ['<Tab>']
-
+let s:prtmaps['PrtSelectInsert()'] = ['<C-v>', '<C-y>']
 let s:prtmaps['PrtExit()'] = ['<Esc>', '<C-c>', '<C-g>']
-let s:prtmaps['PrtSubmit()'] = ['<CR>', '<2-LeftMouse>']
-let s:prtmaps['Nop()'] = ['<S-Tab>', '<C-x>', '<C-CR>', '<C-s>', '<C-t>', '<C-v>', '<RightMouse>', '<C-up>', '<C-down>', '<C-z>', '<C-o>', '<C-y>', '<MiddleMouse>', '<Insert>', '<C-\>']
+let s:prtmaps['PrtSubmit()'] = ['<CR>']
+let s:prtmaps['Nop()'] = ['<BS>', '<C-]>', '<Del>', '<C-d>', '<C-w>', '<C-u>', '<C-r>', '<C-n>', '<C-p>', '<C-a>', '<C-e>', '<C-h>', '<Left>', '<C-l>', '<Right>', '<C-i>', '<C-o>', '<PageDown>', '<kPageDown>', '<PageUp>', '<kPageUp>', '<C-j>', '<Down>', '<C-k>', '<Up>', '<Home>', '<kHome>', '<End>', '<kEnd>', '<C-v>', '<C-y>', '<Esc>', '<C-c>', '<C-g>', '<CR>', '<S-Tab>', '<C-CR>', '<C-x>', '<C-s>', '<C-t>', '<C-z>', '<C-\>', '<C-^>', '<C-Up>', '<C-Down>', '<C-Left>', '<C-Right>', '<S-Up>', '<S-Down>', '<S-Left>', '<S-Right>', '<Insert>', '<2-LeftMouse>', '<MiddleMouse>', '<RightMouse>',]
 
 call extend(s:prtmaps, get(g:, 'dynacomp_prompt_mappings', {}))
 call filter(s:prtmaps, 'v:val!=[]')
@@ -204,7 +202,7 @@ function! s:new_cmpwin(define) "{{{
   call s:_guicursor_enter()
   sil! exe 'hi DynaCompLinePre '.( has("gui_running") ? 'gui' : 'cterm' ).'fg=bg'
   sy match DynaCompLinePre '^>'
-  let _ = {'rest': restcmds, 'cw': cw_opts, 'compfunc': a:define.comp, 'compsep': a:define.append_compsep ? ' ' : '', 'compinsert': a:define.compinsert, 'candidates': [], 'page': 1, 'lastpage': 1}
+  let _ = {'rest': restcmds, 'cw': cw_opts, 'compfunc': a:define.comp, 'compsep': a:define.append_compsep ? ' ' : '', 'compinsert': a:define.compinsert, 'candidates': [], 'page': 1, 'lastpage': 1, 'candidates_len': 0}
   if has_key(a:define, 'exit')
     let _.exitfunc = a:define.exit
   endif
@@ -222,14 +220,14 @@ function! s:_cmpwin._get_viewcandidates(firstidx, lastidx) "{{{
 endfunction
 "}}}
 function! s:_cmpwin._get_buildelm() "{{{
-  let candidates_len = len(self.candidates)
-  let height = min([max([self.cw.min, candidates_len]), self.cw.max, &lines])
-  let self.lastpage = (candidates_len-1) / height + 1
+  let self.candidates_len = len(self.candidates)
+  let height = min([max([self.cw.min, self.candidates_len]), self.cw.max, &lines])
+  let self.lastpage = (self.candidates_len-1) / height + 1
   let self.page = self.page > self.lastpage ? self.lastpage : self.page
   let maxlenof_height = height*(self.page-1)
   let candidates = self._get_viewcandidates(maxlenof_height, height*self.page-1)
   if self.page == self.lastpage
-    let _ = candidates_len % maxlenof_height
+    let _ = self.candidates_len % maxlenof_height
     let height = _==0 ? height : _
   end
   return [candidates, height]
@@ -450,6 +448,10 @@ function! s:default_compinsert(arglead, selected_candidate) "{{{
 endfunction
 "}}}
 function! s:default_submited(input) "{{{
+  if a:input =~ '^\s*$'
+    return
+  end
+  exe a:input
 endfunction
 "}}}
 function! s:default_canceled(input) "{{{
@@ -661,7 +663,6 @@ function! s:PrtPagePrevious() "{{{
   call s:cmpwin.buildview()
 endfunction
 "}}}
-
 function! s:PrtSelectMove(direction) "{{{
   call s:cmpwin.select_move(a:direction)
 endfunction
@@ -673,7 +674,6 @@ function! s:PrtSelectInsert() "{{{
   call s:prompt.echo()
 endfunction
 "}}}
-
 function! s:PrtExit() "{{{
   let [canceledfunc, inputline] = s:prompt.get_exitfunc_elms('canceledfunc')
   call s:cmpwin.close()
