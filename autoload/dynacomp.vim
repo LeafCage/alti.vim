@@ -6,15 +6,21 @@ let g:dynacomp_cache_dir = get(g:, 'dynacomp_cache_dir', '~/.cache/dynacomp')
 "======================================
 aug DynaComp
   autocmd!
+  autocmd BufEnter DynaComp   call s:refuse_unauthorized_access()
   autocmd BufLeave DynaComp   if has_key(s:, 'cmpwin')| call s:cmpwin.close()| end
 aug END
+function! s:refuse_unauthorized_access() "{{{
+  if !has_key(s:, 'cmpwin') && has_key(s:, 'dynacomp_bufnr') && s:dynacomp_bufnr > 0
+    exe s:dynacomp_bufnr.'bw!'
+  end
+endfunction
+"}}}
+
 let s:prtmaps = {}
 let s:prtmaps['PrtBS()'] = ['<BS>', '<C-]>']
 let s:prtmaps['PrtDelete()'] = ['<Del>', '<C-d>']
 let s:prtmaps['PrtDeleteWord()'] = ['<C-w>']
 let s:prtmaps['PrtClear()'] = ['<C-u>']
-let s:prtmaps['PrtInsert("c")'] = ['<MiddleMouse>', '<Insert>']
-let s:prtmaps['PrtInsert()'] = ['<C-\>']
 let s:prtmaps['PrtInsertReg()'] = ['<C-r>']
 let s:prtmaps['PrtHistory(-1)'] = ['<C-n>']
 let s:prtmaps['PrtHistory(1)'] = ['<C-p>']
@@ -22,18 +28,18 @@ let s:prtmaps['PrtCurStart()'] = ['<C-a>']
 let s:prtmaps['PrtCurEnd()'] = ['<C-e>']
 let s:prtmaps['PrtCurLeft()'] = ['<C-h>', '<Left>', '<C-^>']
 let s:prtmaps['PrtCurRight()'] = ['<C-l>', '<Right>']
+let s:prtmaps['PrtPageNext()'] = ['<C-f>', '<PageDown>', '<kPageDown>']
+let s:prtmaps['PrtPagePrevious()'] = ['<C-b>', '<PageUp>', '<kPageUp>']
 
 let s:prtmaps['PrtSelectMove("j")'] = ['<C-j>', '<Down>']
 let s:prtmaps['PrtSelectMove("k")'] = ['<C-k>', '<Up>']
 let s:prtmaps['PrtSelectMove("t")'] = ['<Home>', '<kHome>']
 let s:prtmaps['PrtSelectMove("b")'] = ['<End>', '<kEnd>']
-let s:prtmaps['PrtSelectMove("u")'] = ['<PageUp>', '<kPageUp>']
-let s:prtmaps['PrtSelectMove("d")'] = ['<PageDown>', '<kPageDown>']
-let s:prtmaps['PrtSelectInsert()'] = ['<C-y>', '<Tab>']
+let s:prtmaps['PrtSelectInsert()'] = ['<Tab>']
 
 let s:prtmaps['PrtExit()'] = ['<Esc>', '<C-c>', '<C-g>']
 let s:prtmaps['PrtSubmit()'] = ['<CR>', '<2-LeftMouse>']
-let s:prtmaps['Nop()'] = ['<S-Tab>', '<C-x>', '<C-CR>', '<C-s>', '<C-t>', '<C-v>', '<RightMouse>', '<C-f>', '<C-up>', '<C-b>', '<C-down>', '<C-z>', '<C-o>']
+let s:prtmaps['Nop()'] = ['<S-Tab>', '<C-x>', '<C-CR>', '<C-s>', '<C-t>', '<C-v>', '<RightMouse>', '<C-up>', '<C-down>', '<C-z>', '<C-o>', '<C-y>', '<MiddleMouse>', '<Insert>', '<C-\>']
 
 call extend(s:prtmaps, get(g:, 'dynacomp_prompt_mappings', {}))
 call filter(s:prtmaps, 'v:val!=[]')
@@ -66,7 +72,7 @@ function! s:histholder.reset() "{{{
 endfunction
 "}}}
 function! s:histholder.save() "{{{
-  let str = s:prompt.get_joinedinput()
+  let str = s:prompt.get_inputline()
   if str=~'^\s*$' || str==get(self.hists, 1, "\n") || !g:dynacomp_max_history
     return
   end
@@ -80,7 +86,7 @@ function! s:histholder.save() "{{{
 endfunction
 "}}}
 function! s:histholder.get_nexthist(crement) "{{{
-  let self.hists[0] = self.is_inputsaved ? self.hists[0] : s:prompt.get_joinedinput()
+  let self.hists[0] = self.is_inputsaved ? self.hists[0] : s:prompt.get_inputline()
   let self.hists[0] = self.hists[0]==get(self.hists, 1, "\n") ? '' : self.hists[0]
   let self.is_inputsaved = 1
   let histlen = len(self.hists)
@@ -97,8 +103,7 @@ function! s:new_glboptholder() "{{{
   let _.save_opts = {'magic': &magic, 'timeout': &to, 'timeoutlen': &tm, 'splitbelow': &sb, 'hlsearch': &hls,
     \ 'report': &report, 'showcmd': &sc, 'sidescroll': &ss, 'sidescrolloff': &siso, 'ttimeout': &ttimeout, 'insertmode': &im,
     \ 'guicursor': &gcr, 'ignorecase': &ic, 'langmap': &lmap, 'mousefocus': &mousef, 'imdisable': &imd, 'cmdheight': &ch}
-  set magic timeout timeoutlen=0 splitbelow nohls noinsertmode report=9999 noshowcmd sidescroll=0 siso=0 nottimeout ignorecase lmap= nomousef
-  let &imdisable = get(g:, 'dynacomp_key_loop') ? 0 : 1
+  set magic timeout timeoutlen=0 splitbelow nohls noinsertmode report=9999 noshowcmd sidescroll=0 siso=0 nottimeout ignorecase lmap= nomousef imdisable
   call extend(_, s:_glboptholder, 'keep')
   return _
 endfunction
@@ -151,10 +156,46 @@ function! s:_regholder.expr() "{{{
 endfunction
 "}}}
 "==================
+let s:_argleadsholder = {}
+function! s:new_argleadsholder(define) "{{{
+  let _ = {'arglead': '', 'ordinal': 1, 'save_precursor': '', 'cursoridx': strlen(a:define.static_text)+1}
+  call extend(_, s:_argleadsholder)
+  return _
+endfunction
+"}}}
+function! s:_argleadsholder.get_funcargs() "{{{
+  call self._update_cursoridx()
+  call self.update_arglead()
+  return [self.arglead, s:prompt.get_inputline(), self.cursoridx]
+endfunction
+"}}}
+function! s:_argleadsholder.update_arglead() "{{{
+  if self.save_precursor == s:prompt.input[0]
+    return
+  end
+  let self.save_precursor = s:prompt.input[0]
+  let list = split(self.save_precursor, '\%(\%(^\|\\\)\@<!\s\)\+', 1)
+  let list[0] = substitute(list[0], '^\s*', '', '')
+  let self.arglead = list[-1]
+  let self.ordinal = len(list)
+endfunction
+"}}}
+function! s:_argleadsholder._update_cursoridx() "{{{
+  if self.save_precursor != s:prompt.input[0]
+    let self.cursoridx = strlen(s:prompt.input[0])
+  endif
+endfunction
+"}}}
+"==================
 let s:_cmpwin = {}
 function! s:new_cmpwin(define) "{{{
   let restcmds = {'winrestcmd': winrestcmd(), 'lines': &lines, 'winnr': winnr('$')}
-  silent! exe 'keepalt botright 1new DynaComp'
+  let cw_opts = s:_get_compwin_opts()
+  silent! noa exe 'keepalt' (cw_opts.pos=='top' ? 'topleft' : 'botright') '1new DynaComp'
+  if has_key(get(g:, 'dynacomp_buffer_func', {}), 'enter')
+    call call(g:dynacomp_buffer_func.enter, [], g:dynacomp_buffer_func)
+  end
+  let s:dynacomp_bufnr = bufnr('%')
   abclear <buffer>
   setl noswf nonu nobl nowrap nolist nospell nocuc winfixheight nohlsearch fdc=0 fdl=99 tw=0 bt=nofile bufhidden=unload nocul
   if v:version > 702
@@ -163,8 +204,7 @@ function! s:new_cmpwin(define) "{{{
   call s:_guicursor_enter()
   sil! exe 'hi DynaCompLinePre '.( has("gui_running") ? 'gui' : 'cterm' ).'fg=bg'
   sy match DynaCompLinePre '^>'
-  let _ = {'name': a:define.name, 'rest': restcmds, 'mw': s:_get_matchwin(), 'compfunc': a:define.comp, 'compsep': a:define.append_compsep ? ' ' : '', 'compinsert': a:define.compinsert}
-  let _.candidates = call(a:define.comp, [a:define.default_text, ''])
+  let _ = {'rest': restcmds, 'cw': cw_opts, 'compfunc': a:define.comp, 'compsep': a:define.append_compsep ? ' ' : '', 'compinsert': a:define.compinsert, 'candidates': [], 'page': 1, 'lastpage': 1}
   if has_key(a:define, 'exit')
     let _.exitfunc = a:define.exit
   endif
@@ -173,40 +213,74 @@ function! s:new_cmpwin(define) "{{{
 endfunction
 "}}}
 function! s:_cmpwin.update_candidates() "{{{
-  let self.candidates = call(self.compfunc, s:prompt.input)
+  let self.candidates = call(self.compfunc, s:argleadsholder.get_funcargs())
 endfunction
 "}}}
-function! s:_cmpwin._get_viewcandidates(lastidx) "{{{
-  let candidates = self.candidates[:(a:lastidx)]
-  return self.mw.order=='btt' ? reverse(candidates) : candidates
+function! s:_cmpwin._get_viewcandidates(firstidx, lastidx) "{{{
+  let candidates = self.candidates[(a:firstidx):(a:lastidx)]
+  return self.cw.order=='btt' ? reverse(candidates) : candidates
 endfunction
 "}}}
-function! s:_cmpwin._get_selected_candidate() "{{{
-  let viewcandidates = self._get_viewcandidates(-1)
-  return get(viewcandidates, self.selected_row-1, '')
+function! s:_cmpwin._get_buildelm() "{{{
+  let candidates_len = len(self.candidates)
+  let height = min([max([self.cw.min, candidates_len]), self.cw.max, &lines])
+  let self.lastpage = (candidates_len-1) / height + 1
+  let self.page = self.page > self.lastpage ? self.lastpage : self.page
+  let maxlenof_height = height*(self.page-1)
+  let candidates = self._get_viewcandidates(maxlenof_height, height*self.page-1)
+  if self.page == self.lastpage
+    let _ = candidates_len % maxlenof_height
+    let height = _==0 ? height : _
+  end
+  return [candidates, height]
 endfunction
 "}}}
-function! s:_cmpwin._get_argleadcutted_candidate(selected_candidate) "{{{
-  let arglead = dynacomp#get_arglead(s:prompt.input[0])[0]
-  return substitute(substitute(a:selected_candidate, "\t.*$", '', ''), '^'.arglead, '', '')
+function! s:_cmpwin.select_move(direction) "{{{
+  let save_crrrow = line('.')
+  let wht = winheight(0)
+  let directions = {'t': 'gg','b': 'G','u': wht.'k','d': wht.'j','j': 'j','k': 'k'}
+  exe 'keepj norm!' directions[a:direction]
+  if line('.')==save_crrrow && a:direction=~'[jk]'
+    exe 'keepj norm!' a:direction=='j' ? 'gg' : 'G'
+  endif
+  let self.selected_row = line('.')
+endfunction
+"}}}
+function! s:_cmpwin.select_insert() "{{{
+  let self.selected_row = line('.')
+  let candidates = self._get_buildelm()[0]
+  let selected = get(candidates, self.selected_row-1, '')
+  if selected==''
+    return
+  end
+  call s:argleadsholder.update_arglead()
+  let str = call(self.compinsert, [s:argleadsholder.arglead, selected])
+  call s:prompt.append(str. self.compsep)
+  let save_candidates = copy(self.candidates)
+  call self.update_candidates()
+  if self.candidates != save_candidates
+    unlet! self.selected_row
+  end
+endfunction
+"}}}
+function! s:_cmpwin.turn_page(crement) "{{{
+  let self.page += a:crement
+  let self.page = self.page<1 ? self.lastpage : self.page>self.lastpage ? 1 : self.page
 endfunction
 "}}}
 function! s:_cmpwin.buildview() "{{{
   setl ma
-  let candidates_len = len(self.candidates)
-  let height = min([max([self.mw.min, candidates_len]), self.mw.max, &lines])
+  let [candidates, height]= self._get_buildelm()
   sil! exe '%delete _ | resize' height
-  let candidates = self._get_viewcandidates(candidates_len > height ? height-1 : -1)
   call map(candidates, '"> ". v:val')
   call setline(1, candidates)
   setl noma
   if has_key(self, 'selected_row')
     call cursor(self.selected_row, 1)
   else
-    exe 'keepj norm! '. (self.mw.order=='btt' ? 'G' : 'gg'). '1|'
+    exe 'keepj norm! '. (self.cw.order=='btt' ? 'G' : 'gg'). '1|'
   end
   "call self._refresh_highlight()
-  call s:prompt.echo()
 endfunction
 "}}}
 function! s:_cmpwin._refresh_highlight() "{{{
@@ -236,34 +310,7 @@ function! s:_cmpwin.close() "{{{
   ec
   call s:histholder.save()
   call s:glboptholder.untap()
-  unlet s:cmpwin s:prompt s:regholder
-endfunction
-"}}}
-function! s:_cmpwin.select_move(direction) "{{{
-  let save_crrrow = line('.')
-  let wht = winheight(0)
-  let directions = {'t': 'gg','b': 'G','u': wht.'k','d': wht.'j','j': 'j','k': 'k'}
-  exe 'keepj norm!' directions[a:direction]
-  if line('.')==save_crrrow && a:direction=~'[jk]'
-    exe 'keepj norm!' a:direction=='j' ? 'gg' : 'G'
-  endif
-  let self.selected_row = line('.')
-endfunction
-"}}}
-function! s:_cmpwin.select_insert() "{{{
-  let self.selected_row = line('.')
-  let selected = self._get_selected_candidate()
-  if selected==''
-    return
-  end
-  "call s:prompt.append(self._get_argleadcutted_candidate(selected). self.compsep)
-  let str = call(self.compinsert, [dynacomp#get_arglead(s:prompt.input[0])[0], selected])
-  call s:prompt.append(str. self.compsep)
-  let save_candidates = copy(self.candidates)
-  call self.update_candidates()
-  if self.candidates != save_candidates
-    unlet! self.selected_row
-  end
+  unlet s:cmpwin s:prompt s:regholder s:argleadsholder
 endfunction
 "}}}
 "==================
@@ -272,17 +319,18 @@ function! s:new_prompt(define) "{{{
   exe 'hi link DynaCompPrtBase' a:define.prompt_hl
   hi link DynaCompPrtText     Normal
   hi link DynaCompPrtCursor   Constant
-  let _ = {'input': [a:define.default_text, ''], 'prtbasefunc': a:define.prompt, 'submitfunc': a:define.submit}
+  let _ = {'input': [a:define.default_text, ''], 'prtbasefunc': a:define.prompt, 'submitedfunc': a:define.submited, 'canceledfunc': a:define.canceled, 'inputline': a:define.default_text, 'static_text': a:define.static_text=='' ? '' : a:define.static_text. ' ' }
   call extend(_, s:_prompt, 'keep')
   return _
 endfunction
 "}}}
-function! s:_prompt.get_joinedinput() "{{{
-  return join(self.input, '')
+function! s:_prompt.get_inputline() "{{{
+  let self.inputline = self.static_text. join(self.input, '')
+  return self.inputline
 endfunction
 "}}}
-function! s:_prompt.get_submit_elms() "{{{
-  return [self.submitfunc, self.input]
+function! s:_prompt.get_exitfunc_elms(exitfuncname) "{{{
+  return [self[a:exitfuncname], self.get_inputline()]
 endfunction
 "}}}
 function! s:_prompt.echo() "{{{
@@ -291,12 +339,12 @@ function! s:_prompt.echo() "{{{
   let inputs = map([self.input[0], get(onpostcurs, 1, ''), get(onpostcurs, 2, '')], 'escape(v:val, ''"\'')')
   let is_cursorspace = inputs[1]=='' || inputs[1]==' '
   let [hiactive, hicursor] = ['DynaCompPrtText', (is_cursorspace? 'DynaCompPrtBase': 'DynaCompPrtCursor')]
-  exe 'echoh DynaCompPrtBase| echon "'. self._get_prtbase(). '"| echoh' hiactive '| echon "'. inputs[0]. '"'
+  exe 'echoh DynaCompPrtBase| echon "'. self._get_prtbase(). '"| echoh' hiactive '| echon "'. self.static_text. inputs[0]. '"'
   exe 'echoh' hicursor '| echon "'. (is_cursorspace? '_': inputs[1]). '"| echoh' hiactive '| echon "'. inputs[2].'"| echoh NONE'
 endfunction
 "}}}
 function! s:_prompt._get_prtbase() "{{{
-  let prompt = call(self.prtbasefunc, self.input)
+  let prompt = call(self.prtbasefunc, s:argleadsholder.get_funcargs())
   let nlcount = count(split(prompt, '\zs'), "\n")
   let &cmdheight = nlcount >= s:glboptholder.get_optval('cmdheight') ? nlcount+1 : s:glboptholder.get_optval('cmdheight')
   return prompt
@@ -332,7 +380,7 @@ function! s:_prompt.cursor_start() "{{{
   if self.input[0]==''
     return 0
   end
-  let self.input = ['', join(self.input, '')]
+  let self.input = ['', self.get_inputline()]
   return 1
 endfunction
 "}}}
@@ -340,7 +388,7 @@ function! s:_prompt.cursor_end() "{{{
   if self.input[1]==''
     return 0
   end
-  let self.input = [join(self.input, ''), '']
+  let self.input = [self.get_inputline(), '']
   return 1
 endfunction
 "}}}
@@ -363,43 +411,48 @@ endfunction
 
 "=============================================================================
 "Main
-let s:dfl_define = {'prompt': 's:default_prompt', 'default_text': '', 'submit': 's:default_submit', 'prompt_hl': 'Comment', 'append_compsep': 1, 'compinsert': 's:default_compinsert'}
-"dynacomp#init({'name': 'name', 'prompt': '>', 'comp': 'compfunc(precrs,oncrs,postcrs)', 'accept': 'acceptfunc(splitmode,str)', 'exit': 'exitfunc()'})
+let s:dfl_define = {'default_text': '', 'static_text': '', 'prompt': 's:default_prompt', 'prompt_hl': 'Comment', 'comp': 's:default_comp', 'compinsert': 's:default_compinsert', 'submited': 's:default_submited', 'append_compsep': 1, 'canceled': 's:default_canceled'}
 function! dynacomp#init(define) "{{{
   call extend(a:define, s:dfl_define, 'keep')
   let s:regholder = s:new_regholder()
   let s:glboptholder = s:new_glboptholder()
   let s:cmpwin = s:new_cmpwin(a:define)
   let s:prompt = s:new_prompt(a:define)
+  let s:argleadsholder = s:new_argleadsholder(a:define)
+  call s:cmpwin.update_candidates()
   call s:_mapping_input()
   call s:_mapping_term_arrowkeys()
   call s:_mapping_prtmaps()
   call s:cmpwin.buildview()
+  call s:prompt.echo()
 endfunction
 "}}}
 
-function! dynacomp#get_arglead(precursor) "{{{
-  let list = split(a:precursor, '\%(\%(^\|\\\)\@<!\s\)\+', 1)
-  let list[0] = substitute(list[0], '^\s*', '', '')
-  return [list[-1], len(list)]
-endfunction
-"}}}
-function! dynacomp#get_inputedargs(cmdline) "{{{
-  return split(a:cmdline, '\%(\\\@<!\s\)\+')
+function! dynacomp#get_arginfo() "{{{
+  let ret = {'precursor': s:prompt.input[0], 'postcursor': s:prompt.input[1], 'inputline': s:prompt.inputline, 'cursoridx': s:argleadsholder.cursoridx, 'arglead': s:argleadsholder.arglead, 'ordinal': s:argleadsholder.ordinal}
+  let ret.args = split(s:prompt.inputline, '\%(\\\@<!\s\)\+')
+  return ret
 endfunction
 "}}}
 
 
 "=============================================================================
-function! s:default_prompt(precursor, onpostcursor) "{{{
+function! s:default_prompt(arglead, cmdline, cursorpos) "{{{
   return '>>> '
 endfunction
 "}}}
-function! s:default_submit(input) "{{{
+function! s:default_comp(arglead, cmdline, cursorpos) "{{{
+  return []
 endfunction
 "}}}
 function! s:default_compinsert(arglead, selected_candidate) "{{{
   return substitute(substitute(a:selected_candidate, "\t.*$", '', ''), '^'.a:arglead, '', '')
+endfunction
+"}}}
+function! s:default_submited(input) "{{{
+endfunction
+"}}}
+function! s:default_canceled(input) "{{{
 endfunction
 "}}}
 "==================
@@ -429,13 +482,19 @@ function! s:_mapping_term_arrowkeys() "{{{
 endfunction
 "}}}
 function! s:_mapping_prtmaps() "{{{
-  for [key, vals] in items(s:prtmaps)
+  let maps = copy(s:prtmaps)
+  let nop = remove(maps, 'Nop()')
+  for lhs in nop
+    exe 'nnoremap <buffer><silent>' lhs ':<C-u>call <SID>Nop()<CR>'
+  endfor
+  for [key, vals] in items(maps)
     for lhs in vals
       exe 'nnoremap <buffer><silent>' lhs ':<C-u>call <SID>'.key.'<CR>'
     endfor
   endfor
 endfunction
 "}}}
+"==================
 let s:_dupliexcluder = {}
 function! s:new_dupliexcluder() "{{{
   let _ = {'seens': {}}
@@ -468,21 +527,21 @@ function! s:_writecachefile(filename, list) "{{{
 endfunction
 "}}}
 "s:cmpwin
-let s:MWMAX = 10
-let s:MWMIN = 1
-function! s:_get_matchwin() "{{{
-  if !has_key(g:, 'dynacomp_match_window')
-    return {'pos': 'bottom', 'order': 'ttb', 'max': s:MWMAX, 'min': s:MWMIN, 'resultslimit': min([s:MWMAX, &lines])}
+let s:CWMAX = 10
+let s:CWMIN = 1
+function! s:_get_compwin_opts() "{{{
+  if !has_key(g:, 'dynacomp_comp_window')
+    return {'pos': 'bottom', 'order': 'ttb', 'max': s:CWMAX, 'min': s:CWMIN, 'resultslimit': min([s:CWMAX, &lines])}
   end
   let _ = {}
-  let match_window = g:dynacomp_match_window
-  let _.pos = match_window=~'top\|bottom' ? matchstr(match_window, 'top\|bottom') : 'bottom'
-  let _.order = match_window=~'order:[^,]\+' ? matchstr(match_window, 'order:\zs[^,]\+') : 'ttb'
-  let _.max = match_window=~'max:[^,]\+' ? str2nr(matchstr(match_window, 'max:\zs\d\+')) : s:MWMAX
-  let _.min = match_window=~'min:[^,]\+' ? str2nr(matchstr(match_window, 'min:\zs\d\+')) : s:MWMIN
+  let comp_window = g:dynacomp_comp_window
+  let _.pos = comp_window=~'top\|bottom' ? matchstr(comp_window, 'top\|bottom') : 'bottom'
+  let _.order = comp_window=~'order:[^,]\+' ? matchstr(comp_window, 'order:\zs[^,]\+') : 'ttb'
+  let _.max = comp_window=~'max:[^,]\+' ? str2nr(matchstr(comp_window, 'max:\zs\d\+')) : s:CWMAX
+  let _.min = comp_window=~'min:[^,]\+' ? str2nr(matchstr(comp_window, 'min:\zs\d\+')) : s:CWMIN
   let [_.max, _.min] = [max([_.max, 1]), max(_.min, 1)]
   let _.min = min([_.min, _.max])
-  let _.resultslimit = match_window=~'results:[^,]\+' ? str2nr(matchstr(match_window, 'results:\zs\d\+')) : min([_.max, &lines])
+  let _.resultslimit = comp_window=~'results:[^,]\+' ? str2nr(matchstr(comp_window, 'results:\zs\d\+')) : min([_.max, &lines])
   let _.resultslimit = max([_.results, 1])
   return _
 endfunction
@@ -498,6 +557,7 @@ function! s:PrtAdd(char) "{{{
   call s:prompt.append(a:char)
   call s:cmpwin.update_candidates()
   call s:cmpwin.buildview()
+  call s:prompt.echo()
 endfunction
 "}}}
 function! s:PrtBS() "{{{
@@ -505,6 +565,7 @@ function! s:PrtBS() "{{{
   call s:prompt.bs()
   call s:cmpwin.update_candidates()
   call s:cmpwin.buildview()
+  call s:prompt.echo()
 endfunction
 "}}}
 function! s:PrtDelete() "{{{
@@ -512,6 +573,7 @@ function! s:PrtDelete() "{{{
   call s:prompt.delete()
   call s:cmpwin.update_candidates()
   call s:cmpwin.buildview()
+  call s:prompt.echo()
 endfunction
 "}}}
 function! s:PrtDeleteWord() "{{{
@@ -519,6 +581,7 @@ function! s:PrtDeleteWord() "{{{
   call s:prompt.delete_word()
   call s:cmpwin.update_candidates()
   call s:cmpwin.buildview()
+  call s:prompt.echo()
 endfunction
 "}}}
 function! s:PrtClear() "{{{
@@ -526,10 +589,7 @@ function! s:PrtClear() "{{{
   call s:prompt.clear()
   call s:cmpwin.update_candidates()
   call s:cmpwin.buildview()
-endfunction
-"}}}
-function! s:PrtInsert(...) "{{{
-  call s:histholder.reset()
+  call s:prompt.echo()
 endfunction
 "}}}
 function! s:PrtInsertReg() "{{{
@@ -560,30 +620,45 @@ function! s:PrtHistory(crement) "{{{
   call s:prompt.insert_history(a:crement)
   call s:cmpwin.update_candidates()
   call s:cmpwin.buildview()
+  call s:prompt.echo()
 endfunction
 "}}}
 function! s:PrtCurStart() "{{{
   if s:prompt.cursor_start()
     call s:cmpwin.buildview()
+    call s:prompt.echo()
   endif
 endfunction
 "}}}
 function! s:PrtCurEnd() "{{{
   if s:prompt.cursor_end()
     call s:cmpwin.buildview()
+    call s:prompt.echo()
   endif
 endfunction
 "}}}
 function! s:PrtCurLeft() "{{{
   if s:prompt.cursor_left()
     call s:cmpwin.buildview()
+    call s:prompt.echo()
   endif
 endfunction
 "}}}
 function! s:PrtCurRight() "{{{
   if s:prompt.cursor_right()
     call s:cmpwin.buildview()
+    call s:prompt.echo()
   endif
+endfunction
+"}}}
+function! s:PrtPageNext() "{{{
+  call s:cmpwin.turn_page(1)
+  call s:cmpwin.buildview()
+endfunction
+"}}}
+function! s:PrtPagePrevious() "{{{
+  call s:cmpwin.turn_page(-1)
+  call s:cmpwin.buildview()
 endfunction
 "}}}
 
@@ -595,19 +670,22 @@ function! s:PrtSelectInsert() "{{{
   call s:histholder.reset()
   call s:cmpwin.select_insert()
   call s:cmpwin.buildview()
+  call s:prompt.echo()
 endfunction
 "}}}
 
 function! s:PrtExit() "{{{
+  let [canceledfunc, inputline] = s:prompt.get_exitfunc_elms('canceledfunc')
   call s:cmpwin.close()
   wincmd p
+  call call(canceledfunc, [inputline])
 endfunction
 "}}}
 function! s:PrtSubmit() "{{{
-  let [submitfunc, input] = s:prompt.get_submit_elms()
+  let [submitedfunc, inputline] = s:prompt.get_exitfunc_elms('submitedfunc')
   call s:cmpwin.close()
   wincmd p
-  call call(submitfunc, [join(input, '')])
+  call call(submitedfunc, [inputline])
 endfunction
 "}}}
 function! s:Nop() "{{{

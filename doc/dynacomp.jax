@@ -1,0 +1,246 @@
+*dynacomp.txt*	補完が常時表示されるインプットインターフェイス
+
+Author  : LeafCage <leafcage+vim @ gmail.com>
+License : MIT license  {{{
+    Permission is hereby granted, free of charge, to any person obtaining
+    a copy of this software and associated documentation files (the
+    "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish,
+    distribute, sublicense, and/or sell copies of the Software, and to
+    permit persons to whom the Software is furnished to do so, subject to
+    the following conditions:
+    The above copyright notice and this permission notice shall be included
+    in all copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+    OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+    MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+    CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+    TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+}}}
+
+==============================================================================
+目次						*dynacomp-contents*
+
+概要				|dynacomp-introduction|
+使い方				|dynacomp-usage|
+インターフェイス		|dynacomp-interface|
+  変数				  |dynacomp-variables|
+  関数				  |dynacomp-functions|
+TODO				|dynacomp-todo|
+
+
+==============================================================================
+概要						*dynacomp-introduction*
+
+*dynacomp* は補完を動的に表示するインプットインターフェイスです。
+|input()|を強力にしたといえば分かり易いでしょう。
+|ctrlp.vim|(https://github.com/kien/ctrlp.vim) のインターフェイスを参考に作ら
+れました。Thanks! kien.
+|ctrlp.vim|や|unite.vim|などが絞り込みと選択を行うインターフェイスなのに対して
+、こちらは入力と実行を行うためのインターフェイスです。ユーザの入力によって表示
+させる候補を動的に変化させるような入力、複数の引数を取る入力に向きます。その性
+質から補完の候補は前方一致のみに対応しています。
+
+最新版:
+https://github.com/LeafCage/dynacomp.vim
+
+
+==============================================================================
+使い方						*dynacomp-usage*
+
+dynacompの定義を作る。(dynacompはライブラリだからそのままでは動かない。)
+dynacomp#init()に定義を渡す。
+dyanacompが動く。
+<C-j><C-k>で候補を選択、通常入力で絞込み、<C-f>で次の候補ページへ、
+<Tab>(<C-i>)で選択されている候補を挿入。
+こうしてコマンドを組み立てたら、<CR>で実行。
+コマンドを受け取った関数が何かする。やった！
+
+
+==============================================================================
+インターフェイス				*dynacomp-interface*
+
+------------------------------------------------------------------------------
+変数						*dynacomp-variables*
+
+g:dynacomp_cache_dir				*g:dynacomp_cache_dir*
+	既定値: "~/.cache/dynacomp"
+	このディレクトリに履歴などのファイルが作成される。
+
+
+g:dynacomp_max_history				*g:dynacomp_max_history*
+	既定値: 'history'
+	記録する履歴の数。標準では'history'オプションの設定に等しい。
+
+
+g:dynacomp_comp_window				*g:dynacomp_match_window*
+	補完窓に関する設定はこの変数の文字列で行う。
+	窓の位置（上か下か）、候補の並び（上から下か下から上か）、窓の最大高、
+	最小高、候補の最大値を決定する。 |g:ctrlp_match_window|に似せている。
+	設定されていない値については標準の値が利用される。
+	Example: >
+	let g:dynacomp_comp_window = 'bottom,order:btt,min:1,max:10,results:10'
+<
+	窓の位置: (default: bottom)
+		top / bottom という文字列が含まれていたらそのように設定される。
+	候補の並び: (default: ttb)
+		order:ttb - 上から下へ top to bottom
+		order:btt - 下から上へ bottom to top
+		ctrlpと違って上から下が標準なので注意。
+	窓の高さ:
+		min:{n} - 最小の高さ (default: 1)
+		max:{n} - 最大の高さ (default: 10)
+	候補の最大数(廃止予定?):
+		results:{n} - (default: max:{n}と同じ値が使われる)
+
+
+g:dynacomp_buffer_func				*g:dynacomp_buffer_func*
+	DynaCompバッファが開かれたときと、終了時に実行させたい関数名を指定する。
+	DynaCompバッファは|:noautocmd|で開かれるので、通常の|:autocmd|で捕捉で
+	きないために用意されている。
+	Example: >
+	let g:dynacomp_buffer_func = {
+		\ 'enter': 'Function_Name_1',
+		\ 'exit':  'Function_Name_2',
+		\ }
+<
+
+g:dynacomp_prompt_mappings			*g:dynacomp_prompt_mappings*
+	dynacompの標準キーマップを定義する。1ショットのマップしか定義できない
+	ことに注意。また、"Nop()"以外の機能ではキーマッピングがバッティングす
+	るとどちらが採用されるのか分からないので注意。
+	|g:ctrlp_prompt_mappings|に似せている。
+	このように定義する。
+	Example: >
+	let g:dynacomp_prompt_mappings = {
+	  \ 'PrtBS()': ['<BS>', '<C-]>', '<C-h>'],
+	  \ 'PrtCurLeft()': ['<Left>', '<C-b>'],
+	  \ 'PrtCurRight()': ['<Right>', '<C-f>'],
+	  \ 'PrtExit()': ['<Esc>', '<C-c>', '<C-q>'],
+	  \ 'PrtPageNext()': ['<C-v>'],
+	  \ 'PrtPagePrevious()': ['<C-y>'],
+	  \ }
+<
+						*dynacomp-keymappings*
+	以下は標準で定義されるものである。
+>
+ {
+ \ 'PrtBS()': ['<BS>', '<C-]>'],	入力を1文字バックスペース
+ \ 'PrtDelete()': ['<Del>', '<C-d>'],	入力を1文字デリート
+ \ 'PrtDeleteWord()': ['<C-w>'],	入力の1単語を削除
+ \ 'PrtClear()': ['<C-u>'],		入力をクリアする
+ \ 'PrtInsertReg()': ['<C-r>'],		レジスタ挿入モードになる（後述）
+ \ 'PrtHistory(-1)': ['<C-n>'],		履歴を先に進める
+ \ 'PrtHistory(1)': ['<C-p>'],		履歴を前に遡る
+ \ 'PrtCurStart()': ['<C-a>'],		入力欄の先頭へ
+ \ 'PrtCurEnd()': ['<C-e>'],		入力欄の末尾へ
+ \ 'PrtCurLeft()': ['<C-h>', '<Left>', '<C-^>'],	入力欄カーソルを左へ
+ \ 'PrtCurRight()': ['<C-l>', '<Right>'],		入力欄カーソルを右へ
+ \ 'PrtPageNext()': ['<C-f>', '<PageDown>', '<kPageDown>'],
+		候補が多すぎて窓に入らないとき、次のページへとめくる
+ \ 'PrtPagePrevious()': ['<C-b>', '<PageUp>', '<kPageUp>'],
+		候補が多すぎて窓に入らないとき、前のページへとめくる
+ \ 'PrtSelectMove("j")': ['<C-j>', '<Down>'],		候補窓の選択を1つ下へ
+ \ 'PrtSelectMove("k")': ['<C-k>', '<Up>'],		候補窓の選択を1つ上へ
+ \ 'PrtSelectMove("t")': ['<Home>', '<kHome>'],		候補窓の先頭へ
+ \ 'PrtSelectMove("b")': ['<End>', '<kEnd>'],		候補窓の末尾へ
+ \ 'PrtSelectInsert()': ['<Tab>'],		選択された候補を入力欄へ挿入
+ \ 'PrtExit()': ['<Esc>', '<C-c>', '<C-g>'],	キャンセルしてdynacompを終了
+ \ 'PrtSubmit()': ['<CR>', '<2-LeftMouse>'],	確定してdynacompを終了
+
+ \ 'Nop()':	何もしない。キーを潰すためだけに存在する。ここに入れられたキー
+		が他の定義とバッティングしたとき、他の定義の方が優先される。
+ \ }
+
+
+g:dynacomp_getreg_mappings			*g:dynacomp_getreg_mappings*
+	レジスタ挿入モード(標準では<C-r>)で利用できるマッピング。
+	通常ここで任意の一文字を入力することでその文字のレジスタを挿入できる。
+	しかしここで特殊な文字に特定のレジスタを充てることも可能。
+	Example: >
+	let g:dynacomp_getreg_mappings = {}
+	let g:dynacomp_getreg_mappings['"'] = ['<C-e>']
+	let g:dynacomp_getreg_mappings['*'] = ['<C-y>']
+
+<	この例の場合<C-r>の後の<C-e>で レジスタ-" が、<C-y>で レジスタ-* が挿
+	入される。また、以下の特殊キーがセットされている。 >
+ let g:dynacomp_getreg_mappings = {
+ \ 'expr': ['='],		<C-r>= Expressionレジスタのように、入力を評価
+				しその結果を挿入する。
+ \ '<cword>: ['<C-w>'],		<C-r><C-w> 事前のカーソル位置の単語を挿入する
+ \ '<cWORD>': ['<C-a>'],	<C-r><C-a> 事前のカーソル位置のWORDを挿入する
+ \ '<cfile>': ['<C-p>'],	<C-r><C-p> gfと同様に'path'を使って展開された
+				、事前のカーソル位置のファイル名
+ \ }
+
+
+------------------------------------------------------------------------------
+関数						*dynacomp-functions*
+
+dynacomp#init({define})				*dynacomp#init*
+	この関数にdynacompの定義を書いた辞書を渡すとdynacompが実行される。
+	定義用の辞書の要素は以下の通り。いずれも省略可能。その場合、空文字や、
+	何も仕事をしない関数が利用される。
+
+	default_text (文字列) : 開始時に標準で入力されているテキスト。
+	static_text  (文字列) : default_textと似ているが削除されることはない。
+				ユーザ定義コマンド用の補完関数をそのまま利用す
+				るときに使う。
+	comp (関数名) :
+		補完窓に表示させる内容を文字列のリストで返す。
+		ArgLead, CmdLine, CursorPosの3つの引数を取る。
+		それらは|:command-completion-customlist|で説明されている。
+		(補完対象文字列,インプットライン全体,カーソル位置インデックス)
+		また、|dynacomp#get_arginfo()|を使うことで補完対象についての更
+		なる情報が得られる（後述）。
+		また、標準のcompinsert関数はタブ文字以降を削除するようにしてい
+		るので、候補の後にタブ文字を置いて候補についての注釈を加えるこ
+		とが可能。
+	prompt (関数名) :
+		compと同じくArgLead, CmdLine, CursorPosの3つの引数を取る。
+		プロンプト文字列を返す。入力に応じてプロンプトを変化させること
+		が可能になる。
+	compinsert (関数名) :
+		選択された候補で補完を実行するときに、実際に挿入される文字列を
+		返す。ArgLead と SelectedCandidate(選ばれた候補)を引数に取る。
+		標準では、SelectedCandidateからArgLeadを削除した文字列を返して
+		、補完として機能するようにしている。また、タブ文字以降を削除す
+		るようにしている。これにより、候補の後にタブ文字を挟んで注釈を
+		付けることが出来る。
+	exit (関数名) :
+		終了時に呼ばれる関数。Submitしていようとキャンセルしていようと
+		その前に呼ばれる。引数は取らない。
+	submited (関数名) :
+		Submitされた後に呼ばれる関数。入力された文字列が引数として渡
+		される。
+	canceled (関数名) :
+		キャンセルされた後に呼ばれる関数。入力された文字列が引数として
+		渡される。
+	append_compsep (数値 既定値:1) :
+		非0のとき、補完時に自動で空白を挟む。
+
+
+dynacomp#get_arginfo()				*dynacomp#get_arginfo*
+	comp関数などの中で使える、現在の文脈を記した辞書を返す。
+	要素は以下の通り。
+	precursor  : カーソルより前の文字列
+	postcursor : カーソルを含むカーソルより後の文字列
+	inputline  : 入力文字列全体
+	cursoridx  : カーソルの位置(バイト単位のインデックス)
+	arglead    : 補完対象の文字列
+	ordinal    : 現在、先頭から何番目の引数の補完を行っているのか。初めは
+	             1から始まる。エスケープされていない空白を区切りと見なす。
+	args       : 入力された文字列を非エスケープ空白で分割したリスト。
+
+
+==============================================================================
+TODO						*dynacomp-todo*
+
+- ハイライトをもう少しどうにかしたい。
+
+
+==============================================================================
+vim:tw=78:ts=8:ft=help:norl:noet:fen:fdl=0:
