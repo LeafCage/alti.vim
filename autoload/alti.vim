@@ -316,7 +316,7 @@ function! s:new_prompt(define) "{{{
   exe 'hi link AltIPrtBase' a:define.prompt_hl
   hi link AltIPrtText     Normal
   hi link AltIPrtCursor   Constant
-  let _ = {'input': [a:define.default_text, ''], 'prtbasefunc': a:define.prompt, 'submitedfunc': a:define.submited, 'canceledfunc': a:define.canceled, 'inputline': a:define.default_text, 'static_text': a:define.static_text=='' ? '' : a:define.static_text. ' ' }
+  let _ = {'input': [a:define.default_text, ''], 'prtbasefunc': a:define.prompt, 'submittedfunc': a:define.submitted, 'canceledfunc': a:define.canceled, 'inputline': a:define.default_text, 'static_text': a:define.static_text=='' ? '' : a:define.static_text. ' ' }
   call extend(_, s:_prompt, 'keep')
   return _
 endfunction
@@ -408,7 +408,7 @@ endfunction
 
 "=============================================================================
 "Main
-let s:dfl_define = {'default_text': '', 'static_text': '', 'prompt': 's:default_prompt', 'prompt_hl': 'Comment', 'comp': 's:default_comp', 'compinsert': 's:default_compinsert', 'submited': 's:default_submited', 'append_compsep': 1, 'comp_on_exit': 0, 'canceled': 's:default_canceled'}
+let s:dfl_define = {'default_text': '', 'static_text': '', 'prompt': 's:default_prompt', 'prompt_hl': 'Comment', 'comp': 's:default_comp', 'compinsert': 's:default_compinsert', 'submitted': 's:default_submitted', 'append_compsep': 1, 'comp_on_exit': 0, 'canceled': 's:default_canceled'}
 function! alti#init(define) "{{{
   call extend(a:define, s:dfl_define, 'keep')
   let s:regholder = s:new_regholder()
@@ -446,7 +446,7 @@ function! s:default_compinsert(arglead, selected_candidate) "{{{
   return substitute(substitute(a:selected_candidate, "\t.*$", '', ''), '^'.a:arglead, '', '')
 endfunction
 "}}}
-function! s:default_submited(input) "{{{
+function! s:default_submitted(input) "{{{
   if a:input =~ '^\s*$'
     return
   end
@@ -683,10 +683,10 @@ endfunction
 "}}}
 function! s:PrtSubmit() "{{{
   call s:cmpwin.comp_on_exit()
-  let [submitedfunc, inputline] = s:prompt.get_exitfunc_elms('submitedfunc')
+  let [submittedfunc, inputline] = s:prompt.get_exitfunc_elms('submittedfunc')
   call s:cmpwin.close()
   wincmd p
-  call call(submitedfunc, [inputline])
+  call call(submittedfunc, [inputline])
 endfunction
 "}}}
 function! s:Nop() "{{{

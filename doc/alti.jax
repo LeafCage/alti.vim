@@ -205,7 +205,7 @@ alti#init({define})				*alti#init*
 	exit (関数名) :
 		終了時に呼ばれる関数。Submitしていようとキャンセルしていようと
 		その前に呼ばれる。引数は取らない。
-	submited (関数名) :
+	submitted (関数名) :
 		Submitされた後に呼ばれる関数。入力された文字列が引数として渡
 		される。既定関数は入力文字列が空でなければ|:execute|する。
 	canceled (関数名) :
