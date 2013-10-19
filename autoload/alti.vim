@@ -337,7 +337,7 @@ function! s:_prompt.echo() "{{{
   let inputs = map([self.input[0], get(onpostcurs, 1, ''), get(onpostcurs, 2, '')], 'escape(v:val, ''"\'')')
   let is_cursorspace = inputs[1]=='' || inputs[1]==' '
   let [hiactive, hicursor] = ['AltIPrtText', (is_cursorspace? 'AltIPrtBase': 'AltIPrtCursor')]
-  exe 'echoh AltIPrtBase| echon "'. self._get_prtbase(). '"| echoh' hiactive '| echon "'. self.static_text. inputs[0]. '"'
+  exe 'echoh AltIPrtBase| echon "'. escape(self._get_prtbase(), '"\'). '"| echoh' hiactive '| echon "'. self.static_text. inputs[0]. '"'
   exe 'echoh' hicursor '| echon "'. (is_cursorspace? '_': inputs[1]). '"| echoh' hiactive '| echon "'. inputs[2].'"| echoh NONE'
 endfunction
 "}}}
