@@ -1,17 +1,17 @@
 if exists('s:save_cpo')| finish| endif
 let s:save_cpo = &cpo| set cpo&vim
 "=============================================================================
-let g:dynacomp_max_history = get(g:, 'dynacomp_max_history', exists('+history')? &hi: 20)
-let g:dynacomp_cache_dir = get(g:, 'dynacomp_cache_dir', '~/.cache/dynacomp')
+let g:alti_max_history = get(g:, 'alti_max_history', exists('+history')? &hi: 20)
+let g:alti_cache_dir = get(g:, 'alti_cache_dir', '~/.cache/alti')
 "======================================
-aug DynaComp
+aug AltI
   autocmd!
-  autocmd BufEnter DynaComp   call s:refuse_unauthorized_access()
-  autocmd BufLeave DynaComp   if has_key(s:, 'cmpwin')| call s:cmpwin.close()| end
+  autocmd BufEnter AltI   call s:refuse_unauthorized_access()
+  autocmd BufLeave AltI   if has_key(s:, 'cmpwin')| call s:cmpwin.close()| end
 aug END
 function! s:refuse_unauthorized_access() "{{{
-  if !has_key(s:, 'cmpwin') && has_key(s:, 'dynacomp_bufnr') && s:dynacomp_bufnr > 0
-    exe s:dynacomp_bufnr.'bw!'
+  if !has_key(s:, 'cmpwin') && has_key(s:, 'alti_bufnr') && s:alti_bufnr > 0
+    exe s:alti_bufnr.'bw!'
   end
 endfunction
 "}}}
@@ -28,18 +28,18 @@ let s:prtmaps['PrtCurStart()'] = ['<C-a>']
 let s:prtmaps['PrtCurEnd()'] = ['<C-e>']
 let s:prtmaps['PrtCurLeft()'] = ['<C-h>', '<Left>']
 let s:prtmaps['PrtCurRight()'] = ['<C-l>', '<Right>']
-let s:prtmaps['PrtPageNext()'] = ['<C-i>', '<PageDown>', '<kPageDown>']
-let s:prtmaps['PrtPagePrevious()'] = ['<C-o>', '<PageUp>', '<kPageUp>']
+let s:prtmaps['PrtPageNext()'] = ['<C-f>', '<PageDown>', '<kPageDown>']
+let s:prtmaps['PrtPagePrevious()'] = ['<C-b>', '<PageUp>', '<kPageUp>']
 let s:prtmaps['PrtSelectMove("j")'] = ['<C-j>', '<Down>']
 let s:prtmaps['PrtSelectMove("k")'] = ['<C-k>', '<Up>']
 let s:prtmaps['PrtSelectMove("t")'] = ['<Home>', '<kHome>']
 let s:prtmaps['PrtSelectMove("b")'] = ['<End>', '<kEnd>']
-let s:prtmaps['PrtSelectInsert()'] = ['<C-v>', '<C-y>']
+let s:prtmaps['PrtSelectInsert()'] = ['<Tab>', '<C-y>']
 let s:prtmaps['PrtExit()'] = ['<Esc>', '<C-c>', '<C-g>']
 let s:prtmaps['PrtSubmit()'] = ['<CR>']
-let s:prtmaps['Nop()'] = ['<BS>', '<C-]>', '<Del>', '<C-d>', '<C-w>', '<C-u>', '<C-r>', '<C-n>', '<C-p>', '<C-a>', '<C-e>', '<C-h>', '<Left>', '<C-l>', '<Right>', '<C-i>', '<C-o>', '<PageDown>', '<kPageDown>', '<PageUp>', '<kPageUp>', '<C-j>', '<Down>', '<C-k>', '<Up>', '<Home>', '<kHome>', '<End>', '<kEnd>', '<C-v>', '<C-y>', '<Esc>', '<C-c>', '<C-g>', '<CR>', '<S-Tab>', '<C-CR>', '<C-x>', '<C-s>', '<C-t>', '<C-z>', '<C-\>', '<C-^>', '<C-Up>', '<C-Down>', '<C-Left>', '<C-Right>', '<S-Up>', '<S-Down>', '<S-Left>', '<S-Right>', '<Insert>', '<2-LeftMouse>', '<MiddleMouse>', '<RightMouse>',]
+let s:prtmaps['Nop()'] = ['<BS>', '<C-]>', '<Del>', '<C-d>', '<C-w>', '<C-u>', '<C-r>', '<C-n>', '<C-p>', '<C-a>', '<C-e>', '<C-h>', '<Left>', '<C-l>', '<Right>', '<C-i>', '<C-o>', '<PageDown>', '<kPageDown>', '<PageUp>', '<kPageUp>', '<C-j>', '<Down>', '<C-k>', '<Up>', '<Home>', '<kHome>', '<End>', '<kEnd>', '<C-v>', '<C-y>', '<Esc>', '<C-c>', '<C-g>', '<CR>', '<C-Tab>', '<S-Tab>', '<C-CR>', '<C-x>', '<C-s>', '<C-t>', '<C-z>', '<C-\>', '<C-^>', '<C-Up>', '<C-Down>', '<C-Left>', '<C-Right>', '<S-Up>', '<S-Down>', '<S-Left>', '<S-Right>', '<Insert>', '<2-LeftMouse>', '<MiddleMouse>', '<RightMouse>',]
 
-call extend(s:prtmaps, get(g:, 'dynacomp_prompt_mappings', {}))
+call extend(s:prtmaps, get(g:, 'alti_prompt_mappings', {}))
 call filter(s:prtmaps, 'v:val!=[]')
 
 let s:getreg_maps = {}
@@ -47,7 +47,7 @@ let s:getreg_maps['expr'] = ['=']
 let s:getreg_maps['<cword>'] = ['<C-w>']
 let s:getreg_maps['<cWORD>'] = ['<C-a>']
 let s:getreg_maps['<cfile>'] = ['<C-p>']
-call extend(s:getreg_maps, get(g:, 'dynacomp_getreg_mappings', {}))
+call extend(s:getreg_maps, get(g:, 'alti_getreg_mappings', {}))
 function! s:quotize(mappings) "{{{
   return map(a:mappings, 'v:val=~"^<.\\+>$" ? eval(substitute(v:val, "^<.\\+>$", ''"\\\0"'', "")) : v:val')
 endfunction
@@ -57,8 +57,8 @@ call map(s:getreg_maps, 's:quotize(v:val)')
 "======================================
 let s:histholder = {'hists': [], 'idx': 0, 'is_inputsaved': 0}
 function! s:histholder.load() "{{{
-  let path = expand(g:dynacomp_cache_dir). '/hist'
-  let self.hists = g:dynacomp_max_history && filereadable(path) ? readfile(path) : []
+  let path = expand(g:alti_cache_dir). '/hist'
+  let self.hists = g:alti_max_history && filereadable(path) ? readfile(path) : []
   if get(self.hists, 0, "\n")!=''
     call insert(self.hists, '')
   endif
@@ -71,13 +71,13 @@ endfunction
 "}}}
 function! s:histholder.save() "{{{
   let str = s:prompt.get_inputline()
-  if str=~'^\s*$' || str==get(self.hists, 1, "\n") || !g:dynacomp_max_history
+  if str=~'^\s*$' || str==get(self.hists, 1, "\n") || !g:alti_max_history
     return
   end
   call insert(self.hists, str, 1)
   call s:new_dupliexcluder().filter(self.hists)
-  if len(self.hists) > g:dynacomp_max_history
-    call remove(self.hists, g:dynacomp_max_history, -1)
+  if len(self.hists) > g:alti_max_history
+    call remove(self.hists, g:alti_max_history, -1)
   end
   call s:_writecachefile('hist', self.hists)
   call self.reset()
@@ -189,19 +189,19 @@ let s:_cmpwin = {}
 function! s:new_cmpwin(define) "{{{
   let restcmds = {'winrestcmd': winrestcmd(), 'lines': &lines, 'winnr': winnr('$')}
   let cw_opts = s:_get_compwin_opts()
-  silent! noa exe 'keepalt' (cw_opts.pos=='top' ? 'topleft' : 'botright') '1new DynaComp'
-  if has_key(get(g:, 'dynacomp_buffer_func', {}), 'enter')
-    call call(g:dynacomp_buffer_func.enter, [], g:dynacomp_buffer_func)
+  silent! noa exe 'keepalt' (cw_opts.pos=='top' ? 'topleft' : 'botright') '1new AltI'
+  if has_key(get(g:, 'alti_buffer_func', {}), 'enter')
+    call call(g:alti_buffer_func.enter, [], g:alti_buffer_func)
   end
-  let s:dynacomp_bufnr = bufnr('%')
+  let s:alti_bufnr = bufnr('%')
   abclear <buffer>
   setl noswf nonu nobl nowrap nolist nospell nocuc winfixheight nohlsearch fdc=0 fdl=99 tw=0 bt=nofile bufhidden=unload nocul
   if v:version > 702
     setl nornu noundofile cc=0
   end
   call s:_guicursor_enter()
-  sil! exe 'hi DynaCompLinePre '.( has("gui_running") ? 'gui' : 'cterm' ).'fg=bg'
-  sy match DynaCompLinePre '^>'
+  sil! exe 'hi AltILinePre '.( has("gui_running") ? 'gui' : 'cterm' ).'fg=bg'
+  sy match AltILinePre '^>'
   let _ = {'rest': restcmds, 'cw': cw_opts, 'compfunc': a:define.comp, 'compsep': a:define.append_compsep ? ' ' : '', 'compinsert': a:define.compinsert, 'candidates': [], 'page': 1, 'lastpage': 1, 'candidates_len': 0}
   if has_key(a:define, 'exit')
     let _.exitfunc = a:define.exit
@@ -283,12 +283,12 @@ endfunction
 "}}}
 function! s:_cmpwin._refresh_highlight() "{{{
   call clearmatches()
-  cal matchadd('DynaCompLinePre', '^>')
+  cal matchadd('AltILinePre', '^>')
 endfunction
 "}}}
 function! s:_cmpwin.close() "{{{
-  if has_key(get(g:, 'dynacomp_buffer_func', {}), 'exit')
-    call call(g:dynacomp_buffer_func.exit, [], g:dynacomp_buffer_func)
+  if has_key(get(g:, 'alti_buffer_func', {}), 'exit')
+    call call(g:alti_buffer_func.exit, [], g:alti_buffer_func)
   end
   if winnr('$')==1
     noa bwipeout!
@@ -314,9 +314,9 @@ endfunction
 "==================
 let s:_prompt = {}
 function! s:new_prompt(define) "{{{
-  exe 'hi link DynaCompPrtBase' a:define.prompt_hl
-  hi link DynaCompPrtText     Normal
-  hi link DynaCompPrtCursor   Constant
+  exe 'hi link AltIPrtBase' a:define.prompt_hl
+  hi link AltIPrtText     Normal
+  hi link AltIPrtCursor   Constant
   let _ = {'input': [a:define.default_text, ''], 'prtbasefunc': a:define.prompt, 'submitedfunc': a:define.submited, 'canceledfunc': a:define.canceled, 'inputline': a:define.default_text, 'static_text': a:define.static_text=='' ? '' : a:define.static_text. ' ' }
   call extend(_, s:_prompt, 'keep')
   return _
@@ -336,8 +336,8 @@ function! s:_prompt.echo() "{{{
   let onpostcurs = matchlist(self.input[1], '^\(.\)\(.*\)')
   let inputs = map([self.input[0], get(onpostcurs, 1, ''), get(onpostcurs, 2, '')], 'escape(v:val, ''"\'')')
   let is_cursorspace = inputs[1]=='' || inputs[1]==' '
-  let [hiactive, hicursor] = ['DynaCompPrtText', (is_cursorspace? 'DynaCompPrtBase': 'DynaCompPrtCursor')]
-  exe 'echoh DynaCompPrtBase| echon "'. self._get_prtbase(). '"| echoh' hiactive '| echon "'. self.static_text. inputs[0]. '"'
+  let [hiactive, hicursor] = ['AltIPrtText', (is_cursorspace? 'AltIPrtBase': 'AltIPrtCursor')]
+  exe 'echoh AltIPrtBase| echon "'. self._get_prtbase(). '"| echoh' hiactive '| echon "'. self.static_text. inputs[0]. '"'
   exe 'echoh' hicursor '| echon "'. (is_cursorspace? '_': inputs[1]). '"| echoh' hiactive '| echon "'. inputs[2].'"| echoh NONE'
 endfunction
 "}}}
@@ -410,7 +410,7 @@ endfunction
 "=============================================================================
 "Main
 let s:dfl_define = {'default_text': '', 'static_text': '', 'prompt': 's:default_prompt', 'prompt_hl': 'Comment', 'comp': 's:default_comp', 'compinsert': 's:default_compinsert', 'submited': 's:default_submited', 'append_compsep': 1, 'canceled': 's:default_canceled'}
-function! dynacomp#init(define) "{{{
+function! alti#init(define) "{{{
   call extend(a:define, s:dfl_define, 'keep')
   let s:regholder = s:new_regholder()
   let s:glboptholder = s:new_glboptholder()
@@ -426,7 +426,7 @@ function! dynacomp#init(define) "{{{
 endfunction
 "}}}
 
-function! dynacomp#get_arginfo() "{{{
+function! alti#get_arginfo() "{{{
   let ret = {'precursor': s:prompt.input[0], 'postcursor': s:prompt.input[1], 'inputline': s:prompt.inputline, 'cursoridx': s:argleadsholder.cursoridx, 'arglead': s:argleadsholder.arglead, 'ordinal': s:argleadsholder.ordinal}
   let ret.args = split(s:prompt.inputline, '\%(\\\@<!\s\)\+')
   return ret
@@ -521,7 +521,7 @@ endfunction
 "==================
 "s:histholder
 function! s:_writecachefile(filename, list) "{{{
-  let dir = expand(g:dynacomp_cache_dir)
+  let dir = expand(g:alti_cache_dir)
   if !isdirectory(dir)
     call mkdir(dir, 'p')
   end
@@ -532,11 +532,11 @@ endfunction
 let s:CWMAX = 10
 let s:CWMIN = 1
 function! s:_get_compwin_opts() "{{{
-  if !has_key(g:, 'dynacomp_comp_window')
+  if !has_key(g:, 'alti_comp_window')
     return {'pos': 'bottom', 'order': 'ttb', 'max': s:CWMAX, 'min': s:CWMIN, 'resultslimit': min([s:CWMAX, &lines])}
   end
   let _ = {}
-  let comp_window = g:dynacomp_comp_window
+  let comp_window = g:alti_comp_window
   let _.pos = comp_window=~'top\|bottom' ? matchstr(comp_window, 'top\|bottom') : 'bottom'
   let _.order = comp_window=~'order:[^,]\+' ? matchstr(comp_window, 'order:\zs[^,]\+') : 'ttb'
   let _.max = comp_window=~'max:[^,]\+' ? str2nr(matchstr(comp_window, 'max:\zs\d\+')) : s:CWMAX
@@ -616,7 +616,7 @@ function! s:PrtInsertReg() "{{{
 endfunction
 "}}}
 function! s:PrtHistory(crement) "{{{
-  if !g:dynacomp_max_history
+  if !g:alti_max_history
     return
   end
   call s:prompt.insert_history(a:crement)
