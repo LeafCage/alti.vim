@@ -410,24 +410,23 @@ endfunction
 "=============================================================================
 "Main
 let s:dfl_define = {'default_text': '', 'static_text': '', 'prompt': 's:default_prompt', 'prompt_hl': 'Comment', 'comp': 's:default_comp', 'compinsert': 's:default_compinsert', 'submitted': 's:default_submitted', 'append_compsep': 1, 'comp_on_exit': 0, 'canceled': 's:default_canceled', 'type_multibyte': 0}
-function! alti#init(define) "{{{
+function! alti#init(define)
   call extend(a:define, s:dfl_define, 'keep')
   let s:regholder = s:new_regholder()
   let s:glboptholder = s:new_glboptholder(a:define)
   let s:cmpwin = s:new_cmpwin(a:define)
   let s:prompt = s:new_prompt(a:define)
   let s:argleadsholder = s:new_argleadsholder(a:define)
-  call s:cmpwin.update_candidates()
   call s:_mapping_input()
   call s:_mapping_term_arrowkeys()
   call s:_mapping_prtmaps()
+  call s:cmpwin.update_candidates()
   call s:cmpwin.buildview()
   call s:prompt.echo()
   if a:define.type_multibyte
     call s:_keyloop()
   end
 endfunction
-"}}}
 
 function! alti#get_arginfo() "{{{
   let ret = {'precursor': s:prompt.input[0], 'postcursor': s:prompt.input[1], 'inputline': s:prompt.inputline, 'cursoridx': s:argleadsholder.cursoridx, 'arglead': s:argleadsholder.arglead, 'ordinal': s:argleadsholder.ordinal}
