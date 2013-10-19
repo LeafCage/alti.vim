@@ -6,15 +6,10 @@ let g:alti_cache_dir = get(g:, 'alti_cache_dir', '~/.cache/alti')
 "======================================
 aug AltI
   autocmd!
-  autocmd BufEnter AltI   call s:refuse_unauthorized_access()
-  autocmd BufLeave AltI   if has_key(s:, 'cmpwin')| call s:cmpwin.close()| end
+  autocmd BufEnter AltI   if s:enable_autocmd && has_key(s:, 'alti_bufnr') && s:alti_bufnr > 0| exe s:alti_bufnr.'bw!'| end
+  autocmd BufLeave AltI   if s:enable_autocmd && has_key(s:, 'cmpwin')| call s:cmpwin.close()| end
 aug END
-function! s:refuse_unauthorized_access() "{{{
-  if !has_key(s:, 'cmpwin') && has_key(s:, 'alti_bufnr') && s:alti_bufnr > 0
-    exe s:alti_bufnr.'bw!'
-  end
-endfunction
-"}}}
+let s:enable_autocmd = 1
 
 let s:prtmaps = {}
 let s:prtmaps['PrtBS()'] = ['<BS>', '<C-]>']
@@ -189,10 +184,9 @@ let s:_cmpwin = {}
 function! s:new_cmpwin(define) "{{{
   let restcmds = {'winrestcmd': winrestcmd(), 'lines': &lines, 'winnr': winnr('$')}
   let cw_opts = s:_get_compwin_opts()
-  silent! noa exe 'keepalt' (cw_opts.pos=='top' ? 'topleft' : 'botright') '1new AltI'
-  if has_key(get(g:, 'alti_buffer_func', {}), 'enter')
-    call call(g:alti_buffer_func.enter, [], g:alti_buffer_func)
-  end
+  let s:enable_autocmd = 0
+  silent! exe 'keepalt' (cw_opts.pos=='top' ? 'topleft' : 'botright') '1new AltI'
+  let s:enable_autocmd = 1
   let s:alti_bufnr = bufnr('%')
   abclear <buffer>
   setl noswf nonu nobl nowrap nolist nospell nocuc winfixheight nohlsearch fdc=0 fdl=99 tw=0 bt=nofile bufhidden=unload nocul
@@ -287,18 +281,17 @@ function! s:_cmpwin._refresh_highlight() "{{{
 endfunction
 "}}}
 function! s:_cmpwin.close() "{{{
-  if has_key(get(g:, 'alti_buffer_func', {}), 'exit')
-    call call(g:alti_buffer_func.exit, [], g:alti_buffer_func)
-  end
+  let s:enable_autocmd = 0
   if winnr('$')==1
-    noa bwipeout!
+    bwipeout!
   else
     try
-      noa bunload!
+      bunload!
     catch
-      noa close
+      close
     endtry
   end
+  let s:enable_autocmd = 1
   if self.rest.lines >= &lines && self.rest.winnr == winnr('$')
     exe self.rest.winrestcmd
   end

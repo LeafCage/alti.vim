@@ -98,17 +98,6 @@ g:alti_comp_window				*g:alti_match_window*
 		results:{n} - (default: max:{n}と同じ値が使われる)
 
 
-g:alti_buffer_func				*g:alti_buffer_func*
-	AltIバッファが開かれたときと、終了時に実行させたい関数名を指定する。
-	AltIバッファは|:noautocmd|で開かれるので、通常の|:autocmd|で捕捉で
-	きないために用意されている。
-	Example: >
-	let g:alti_buffer_func = {
-		\ 'enter': 'Function_Name_1',
-		\ 'exit':  'Function_Name_2',
-		\ }
-<
-
 g:alti_prompt_mappings				*g:alti_prompt_mappings*
 	altiの標準キーマップを定義する。1ショットのマップしか定義できないこと
 	に注意。 |g:ctrlp_prompt_mappings|に似せている。
@@ -117,9 +106,9 @@ g:alti_prompt_mappings				*g:alti_prompt_mappings*
 	  \ 'PrtBS()': ['<BS>', '<C-]>', '<C-h>'],
 	  \ 'PrtCurLeft()': ['<Left>', '<C-b>'],
 	  \ 'PrtCurRight()': ['<Right>', '<C-f>'],
-	  \ 'PrtPageNext()': ['<C-v>', '<C-l>'],
-	  \ 'PrtPagePrevious()': ['<C-g>', '<C-o>'],
-	  \ 'PrtExit()': ['<Esc>', '<C-c>', '<C-q>'],
+	  \ 'PrtPageNext()': ['<C-v>'],
+	  \ 'PrtPagePrevious()': ['<C-y>', '<C-l>', '<C-o>'],
+	  \ 'PrtExit()': ['<Esc>', '<C-c>', '<C-g>', '<C-q>'],
 	  \ }
 <
 						*alti-default-key-mappings*
