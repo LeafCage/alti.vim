@@ -196,7 +196,7 @@ function! s:new_cmpwin(define) "{{{
   call s:_guicursor_enter()
   sil! exe 'hi AltILinePre '.( has("gui_running") ? 'gui' : 'cterm' ).'fg=bg'
   sy match AltILinePre '^>'
-  let _ = {'rest': restcmds, 'cw': cw_opts, 'compfunc': a:define.comp, 'compsep': a:define.append_compsep ? ' ' : '', 'compinsert': a:define.compinsert, 'candidates': [], 'page': 1, 'lastpage': 1, 'candidates_len': 0}
+  let _ = {'rest': restcmds, 'cw': cw_opts, 'compfunc': a:define.comp, 'compsep': a:define.append_compsep ? ' ' : '', 'compinsert': a:define.compinsert, 'candidates': [], 'page': 1, 'lastpage': 1, 'candidates_len': 0, 'do_comp_on_exit': a:define.comp_on_exit}
   if has_key(a:define, 'exit')
     let _.exitfunc = a:define.exit
   endif
@@ -278,6 +278,12 @@ endfunction
 function! s:_cmpwin._refresh_highlight() "{{{
   call clearmatches()
   cal matchadd('AltILinePre', '^>')
+endfunction
+"}}}
+function! s:_cmpwin.comp_on_exit() "{{{
+  if self.do_comp_on_exit
+    call self.select_insert()
+  end
 endfunction
 "}}}
 function! s:_cmpwin.close() "{{{
@@ -402,7 +408,7 @@ endfunction
 
 "=============================================================================
 "Main
-let s:dfl_define = {'default_text': '', 'static_text': '', 'prompt': 's:default_prompt', 'prompt_hl': 'Comment', 'comp': 's:default_comp', 'compinsert': 's:default_compinsert', 'submited': 's:default_submited', 'append_compsep': 1, 'canceled': 's:default_canceled'}
+let s:dfl_define = {'default_text': '', 'static_text': '', 'prompt': 's:default_prompt', 'prompt_hl': 'Comment', 'comp': 's:default_comp', 'compinsert': 's:default_compinsert', 'submited': 's:default_submited', 'append_compsep': 1, 'comp_on_exit': 0, 'canceled': 's:default_canceled'}
 function! alti#init(define) "{{{
   call extend(a:define, s:dfl_define, 'keep')
   let s:regholder = s:new_regholder()
@@ -668,6 +674,7 @@ function! s:PrtSelectInsert() "{{{
 endfunction
 "}}}
 function! s:PrtExit() "{{{
+  call s:cmpwin.comp_on_exit()
   let [canceledfunc, inputline] = s:prompt.get_exitfunc_elms('canceledfunc')
   call s:cmpwin.close()
   wincmd p
@@ -675,6 +682,7 @@ function! s:PrtExit() "{{{
 endfunction
 "}}}
 function! s:PrtSubmit() "{{{
+  call s:cmpwin.comp_on_exit()
   let [submitedfunc, inputline] = s:prompt.get_exitfunc_elms('submitedfunc')
   call s:cmpwin.close()
   wincmd p
