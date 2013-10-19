@@ -91,12 +91,13 @@ endfunction
 call s:histholder.load()
 "==================
 let s:_glboptholder = {}
-function! s:new_glboptholder() "{{{
+function! s:new_glboptholder(define) "{{{
   let _ = {}
   let _.save_opts = {'magic': &magic, 'timeout': &to, 'timeoutlen': &tm, 'splitbelow': &sb, 'hlsearch': &hls,
     \ 'report': &report, 'showcmd': &sc, 'sidescroll': &ss, 'sidescrolloff': &siso, 'ttimeout': &ttimeout, 'insertmode': &im,
     \ 'guicursor': &gcr, 'ignorecase': &ic, 'langmap': &lmap, 'mousefocus': &mousef, 'imdisable': &imd, 'cmdheight': &ch}
-  set magic timeout timeoutlen=0 splitbelow nohls noinsertmode report=9999 noshowcmd sidescroll=0 siso=0 nottimeout ignorecase lmap= nomousef imdisable
+  set magic timeout timeoutlen=0 splitbelow nohls noinsertmode report=9999 noshowcmd sidescroll=0 siso=0 nottimeout ignorecase lmap= nomousef
+  let &imdisable = a:define.type_multibyte ? 0 : 1
   call extend(_, s:_glboptholder, 'keep')
   return _
 endfunction
@@ -408,11 +409,11 @@ endfunction
 
 "=============================================================================
 "Main
-let s:dfl_define = {'default_text': '', 'static_text': '', 'prompt': 's:default_prompt', 'prompt_hl': 'Comment', 'comp': 's:default_comp', 'compinsert': 's:default_compinsert', 'submitted': 's:default_submitted', 'append_compsep': 1, 'comp_on_exit': 0, 'canceled': 's:default_canceled'}
+let s:dfl_define = {'default_text': '', 'static_text': '', 'prompt': 's:default_prompt', 'prompt_hl': 'Comment', 'comp': 's:default_comp', 'compinsert': 's:default_compinsert', 'submitted': 's:default_submitted', 'append_compsep': 1, 'comp_on_exit': 0, 'canceled': 's:default_canceled', 'type_multibyte': 0}
 function! alti#init(define) "{{{
   call extend(a:define, s:dfl_define, 'keep')
   let s:regholder = s:new_regholder()
-  let s:glboptholder = s:new_glboptholder()
+  let s:glboptholder = s:new_glboptholder(a:define)
   let s:cmpwin = s:new_cmpwin(a:define)
   let s:prompt = s:new_prompt(a:define)
   let s:argleadsholder = s:new_argleadsholder(a:define)
@@ -422,6 +423,9 @@ function! alti#init(define) "{{{
   call s:_mapping_prtmaps()
   call s:cmpwin.buildview()
   call s:prompt.echo()
+  if a:define.type_multibyte
+    call s:_keyloop()
+  end
 endfunction
 "}}}
 
@@ -493,6 +497,21 @@ function! s:_mapping_prtmaps() "{{{
       exe 'nnoremap <buffer><silent>' lhs ':<C-u>call <SID>'.key.'<CR>'
     endfor
   endfor
+endfunction
+"}}}
+let s:TYPE_NUM = type(0)
+function! s:_keyloop() "{{{
+  while has_key(s:, 'prompt')
+    redraw
+    let nr = getchar()
+    let char = type(nr)==s:TYPE_NUM ? nr2char(nr) : nr
+    if nr >=# 0x20
+      cal s:PrtAdd(char)
+    else
+      let cmd = matchstr(maparg(char), ':<C-u>\zs.\+\ze<CR>$')
+      exe ( cmd != '' ? cmd : 'norm '.char )
+    end
+  endwhile
 endfunction
 "}}}
 "==================
