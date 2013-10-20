@@ -655,31 +655,39 @@ function! s:PrtSmartHistory(indec) "{{{
 endfunction
 "}}}
 function! s:PrtCurStart() "{{{
-  if s:prompt.cursor_start()
-    call s:cmpwin.buildview()
-    call s:prompt.echo()
-  endif
+  if !s:prompt.cursor_start()
+    return
+  end
+  call s:cmpwin.update_candidates()
+  call s:cmpwin.buildview()
+  call s:prompt.echo()
 endfunction
 "}}}
 function! s:PrtCurEnd() "{{{
-  if s:prompt.cursor_end()
-    call s:cmpwin.buildview()
-    call s:prompt.echo()
-  endif
+  if !s:prompt.cursor_end()
+    return
+  end
+  call s:cmpwin.update_candidates()
+  call s:cmpwin.buildview()
+  call s:prompt.echo()
 endfunction
 "}}}
 function! s:PrtCurLeft() "{{{
-  if s:prompt.cursor_left()
-    call s:cmpwin.buildview()
-    call s:prompt.echo()
-  endif
+  if !s:prompt.cursor_left()
+    return
+  end
+  call s:cmpwin.update_candidates()
+  call s:cmpwin.buildview()
+  call s:prompt.echo()
 endfunction
 "}}}
 function! s:PrtCurRight() "{{{
   if s:prompt.cursor_right()
-    call s:cmpwin.buildview()
-    call s:prompt.echo()
-  endif
+    return
+  end
+  call s:cmpwin.update_candidates()
+  call s:cmpwin.buildview()
+  call s:prompt.echo()
 endfunction
 "}}}
 function! s:PrtPageNext() "{{{
