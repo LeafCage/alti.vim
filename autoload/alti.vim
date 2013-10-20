@@ -304,11 +304,11 @@ endfunction
 "}}}
 "==================
 let s:_prompt = {}
-function! s:new_prompt(define) "{{{
+function! s:new_prompt(define, firstmess) "{{{
   exe 'hi link AltIPrtBase' a:define.prompt_hl
   hi link AltIPrtText     Normal
   hi link AltIPrtCursor   Constant
-  let _ = {'input': [a:define.default_text, ''], 'prtbasefunc': a:define.prompt, 'submittedfunc': a:define.submitted, 'canceledfunc': a:define.canceled, 'inputline': a:define.default_text, 'static_text': a:define.static_text=='' ? '' : a:define.static_text. ' ' }
+  let _ = {'input': [a:define.default_text, ''], 'prtbasefunc': a:define.prompt, 'submittedfunc': a:define.submitted, 'canceledfunc': a:define.canceled, 'inputline': a:define.default_text, 'static_text': a:define.static_text=='' ? '' : a:define.static_text. ' ', 'firstmess': a:firstmess}
   call extend(_, s:_prompt, 'keep')
   return _
 endfunction
@@ -324,19 +324,21 @@ endfunction
 "}}}
 function! s:_prompt.echo() "{{{
   redraw
+  let prtbase = call(self.prtbasefunc, s:argleadsholder.get_funcargs())
+  call s:_adjust_cmdheight(prtbase)
+  if self.firstmess!=''
+    let &cmdheight += s:_get_nlcount(self.firstmess)+1
+    echo self.firstmess
+  end
+  let self.firstmess=''
   let onpostcurs = matchlist(self.input[1], '^\(.\)\(.*\)')
   let inputs = map([self.input[0], get(onpostcurs, 1, ''), get(onpostcurs, 2, '')], 'escape(v:val, ''"\'')')
   let is_cursorspace = inputs[1]=='' || inputs[1]==' '
   let [hiactive, hicursor] = ['AltIPrtText', (is_cursorspace? 'AltIPrtBase': 'AltIPrtCursor')]
-  exe 'echoh AltIPrtBase| echon "'. escape(self._get_prtbase(), '"\'). '"| echoh' hiactive '| echon "'. self.static_text. inputs[0]. '"'
-  exe 'echoh' hicursor '| echon "'. (is_cursorspace? '_': inputs[1]). '"| echoh' hiactive '| echon "'. inputs[2].'"| echoh NONE'
-endfunction
-"}}}
-function! s:_prompt._get_prtbase() "{{{
-  let prompt = call(self.prtbasefunc, s:argleadsholder.get_funcargs())
-  let nlcount = count(split(prompt, '\zs'), "\n")
-  let &cmdheight = nlcount >= s:glboptholder.get_optval('cmdheight') ? nlcount+1 : s:glboptholder.get_optval('cmdheight')
-  return prompt
+  exe 'echoh AltIPrtBase| echo "'. escape(prtbase, '"\'). '"'
+  exe 'echoh' hiactive '| echon "'. self.static_text. inputs[0]. '"'
+  exe 'echoh' hicursor '| echon "'. (is_cursorspace? '_': inputs[1]). '"'
+  exe 'echoh' hiactive '| echon "'. inputs[2].'"| echoh NONE'
 endfunction
 "}}}
 function! s:_prompt.append(str) "{{{
@@ -401,12 +403,13 @@ endfunction
 "=============================================================================
 "Main
 let s:dfl_define = {'default_text': '', 'static_text': '', 'prompt': 's:default_prompt', 'prompt_hl': 'Comment', 'comp': 's:default_comp', 'compinsert': 's:default_compinsert', 'submitted': 's:default_submitted', 'append_compsep': 1, 'comp_on_exit': 0, 'canceled': 's:default_canceled', 'type_multibyte': 0}
-function! alti#init(define)
+function! alti#init(define, ...)
+  let firstmess = substitute(get(a:, 1, ''), "^\n", '', '')
   call extend(a:define, s:dfl_define, 'keep')
   let s:regholder = s:new_regholder()
   let s:glboptholder = s:new_glboptholder(a:define)
   let s:cmpwin = s:new_cmpwin(a:define)
-  let s:prompt = s:new_prompt(a:define)
+  let s:prompt = s:new_prompt(a:define, firstmess)
   let s:argleadsholder = s:new_argleadsholder(a:define)
   call s:_mapping_input()
   call s:_mapping_term_arrowkeys()
@@ -502,6 +505,15 @@ function! s:_keyloop() "{{{
       exe ( cmd != '' ? cmd : 'norm '.char )
     end
   endwhile
+endfunction
+"}}}
+function! s:_adjust_cmdheight(str) "{{{
+  let nlcount = s:_get_nlcount(a:str)
+  let &cmdheight = nlcount >= s:glboptholder.get_optval('cmdheight') ? nlcount+1 : s:glboptholder.get_optval('cmdheight')
+endfunction
+"}}}
+function! s:_get_nlcount(str) "{{{
+  return count(split(a:str, '\zs'), "\n")
 endfunction
 "}}}
 "==================
