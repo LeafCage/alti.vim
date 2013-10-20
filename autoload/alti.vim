@@ -198,9 +198,6 @@ function! s:new_cmpwin(define) "{{{
   sil! exe 'hi AltILinePre '.( has("gui_running") ? 'gui' : 'cterm' ).'fg=bg'
   sy match AltILinePre '^>'
   let _ = {'rest': restcmds, 'cw': cw_opts, 'compfunc': a:define.comp, 'compsep': a:define.append_compsep ? ' ' : '', 'compinsert': a:define.compinsert, 'candidates': [], 'page': 1, 'lastpage': 1, 'candidates_len': 0, 'do_comp_on_exit': a:define.comp_on_exit}
-  if has_key(a:define, 'exit')
-    let _.exitfunc = a:define.exit
-  endif
   call extend(_, s:_cmpwin, 'keep')
   return _
 endfunction
@@ -298,9 +295,6 @@ function! s:_cmpwin.close() "{{{
   call s:glboptholder.untap()
   if self.rest.lines >= &lines && self.rest.winnr == winnr('$')
     exe self.rest.winrestcmd
-  end
-  if has_key(self, 'exitfunc')
-    call eval(self.exitfunc)
   end
   echo
   redraw
