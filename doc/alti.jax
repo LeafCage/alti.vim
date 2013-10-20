@@ -172,8 +172,9 @@ g:alti_getreg_mappings				*g:alti_getreg_mappings*
 ------------------------------------------------------------------------------
 関数						*alti-functions*
 
-alti#init({define})				*alti#init*
+alti#init({define}, [{firstmessage}])		*alti#init*
 	この関数にaltiの定義を書いた辞書を渡すとaltiが実行される。
+	文字列{firstmessage}を渡すと開始直後にのみそれが表示される。
 	定義用の辞書の要素は以下の通り。いずれも省略可能。
 
 	default_text (文字列) :
