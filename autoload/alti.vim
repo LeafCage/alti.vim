@@ -302,7 +302,8 @@ function! s:_cmpwin.close() "{{{
   if has_key(self, 'exitfunc')
     call eval(self.exitfunc)
   end
-  ec
+  echo
+  redraw
   call s:histholder.save()
   unlet s:cmpwin s:prompt s:regholder s:argleadsholder
 endfunction
