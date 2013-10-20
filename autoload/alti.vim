@@ -292,13 +292,10 @@ function! s:_cmpwin.close() "{{{
   if winnr('$')==1
     bwipeout!
   else
-    try
-      bunload!
-    catch
-      close
-    endtry
+    try| bunload!| catch| close| endtry
   end
   let s:enable_autocmd = 1
+  call s:glboptholder.untap()
   if self.rest.lines >= &lines && self.rest.winnr == winnr('$')
     exe self.rest.winrestcmd
   end
@@ -307,7 +304,6 @@ function! s:_cmpwin.close() "{{{
   end
   ec
   call s:histholder.save()
-  call s:glboptholder.untap()
   unlet s:cmpwin s:prompt s:regholder s:argleadsholder
 endfunction
 "}}}
