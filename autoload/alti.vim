@@ -17,7 +17,8 @@ let s:prtmaps['PrtDelete()'] = ['<Del>', '<C-d>']
 let s:prtmaps['PrtDeleteWord()'] = ['<C-w>']
 let s:prtmaps['PrtClear()'] = ['<C-u>']
 let s:prtmaps['PrtInsertReg()'] = ['<C-r>']
-let s:prtmaps['PrtHistory(-1)'] = ['<C-n>']
+let s:prtmaps['PrtHistory(-1)'] = []
+let s:prtmaps['PrtSmartHistory(-1)'] = ['<C-n>']
 let s:prtmaps['PrtHistory(1)'] = ['<C-p>']
 let s:prtmaps['PrtCurStart()'] = ['<C-a>']
 let s:prtmaps['PrtCurEnd()'] = ['<C-e>']
@@ -78,12 +79,12 @@ function! s:histholder.save() "{{{
   call self.reset()
 endfunction
 "}}}
-function! s:histholder.get_nexthist(crement) "{{{
+function! s:histholder.get_nexthist(indec) "{{{
   let self.hists[0] = self.is_inputsaved ? self.hists[0] : s:prompt.get_inputline()
   let self.hists[0] = self.hists[0]==get(self.hists, 1, "\n") ? '' : self.hists[0]
   let self.is_inputsaved = 1
   let histlen = len(self.hists)
-  let self.idx += a:crement
+  let self.idx += a:indec
   let self.idx = self.idx<0 ? 0 : self.idx < histlen ? self.idx : histlen > 1 ? histlen-1 : 0
   return self.hists[self.idx]
 endfunction
@@ -253,8 +254,8 @@ function! s:_cmpwin.select_insert() "{{{
   end
 endfunction
 "}}}
-function! s:_cmpwin.turn_page(crement) "{{{
-  let self.page += a:crement
+function! s:_cmpwin.turn_page(indec) "{{{
+  let self.page += a:indec
   let self.page = self.page<1 ? self.lastpage : self.page>self.lastpage ? 1 : self.page
 endfunction
 "}}}
@@ -363,8 +364,8 @@ function! s:_prompt.clear() "{{{
   let self.input = ['', '']
 endfunction
 "}}}
-function! s:_prompt.insert_history(crement) "{{{
-  let self.input = [s:histholder.get_nexthist(a:crement), '']
+function! s:_prompt.insert_history(indec) "{{{
+  let self.input = [s:histholder.get_nexthist(a:indec), '']
 endfunction
 "}}}
 function! s:_prompt.cursor_start() "{{{
@@ -635,14 +636,22 @@ function! s:PrtInsertReg() "{{{
   end
 endfunction
 "}}}
-function! s:PrtHistory(crement) "{{{
+function! s:PrtHistory(indec) "{{{
   if !g:alti_max_history
     return
   end
-  call s:prompt.insert_history(a:crement)
+  call s:prompt.insert_history(a:indec)
   call s:cmpwin.update_candidates()
   call s:cmpwin.buildview()
   call s:prompt.echo()
+endfunction
+"}}}
+function! s:PrtSmartHistory(indec) "{{{
+  if s:histholder.idx == 0
+    call s:PrtSelectInsert()
+  else
+    call s:PrtHistory(a:indec)
+  end
 endfunction
 "}}}
 function! s:PrtCurStart() "{{{

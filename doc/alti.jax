@@ -56,10 +56,11 @@ https://github.com/LeafCage/alti.vim
 2. alti#init()に定義を渡す。
 3. altiが動く。
 4. <C-j><C-k>で候補を選択、通常入力で絞込み、<C-f>で次の候補ページへ、
-   <Tab>(or <C-y>)で選択されている候補を挿入。
+   <Tab>(or <C-y> or <C-n>※)で選択されている候補を挿入。
 5. こうしてコマンドを組み立てたら、<CR>で実行。
 6. コマンドを受け取った関数が何かする。やった！
 
+※<C-n>は履歴の先頭にいるときに限る
 
 ==============================================================================
 インターフェイス				*alti-interface*
@@ -119,7 +120,9 @@ g:alti_prompt_mappings				*g:alti_prompt_mappings*
  \ 'PrtDeleteWord()': ['<C-w>'],		入力の1単語を削除
  \ 'PrtClear()': ['<C-u>'],			入力をクリアする
  \ 'PrtInsertReg()': ['<C-r>'],			レジスタ挿入モードになる(後述)
- \ 'PrtHistory(-1)': ['<C-n>'],			履歴を先に進める
+ \ 'PrtHistory(-1)': [],			履歴を先に進める
+ \ 'PrtSmartHistory(-1)': ['<C-n>'],		履歴を先に進めるが、進められな
+						ければ、選択候補を入力欄に挿入
  \ 'PrtHistory(1)': ['<C-p>'],			履歴を前に遡る
  \ 'PrtCurStart()': ['<C-a>'],			入力欄の先頭へ
  \ 'PrtCurEnd()': ['<C-e>'],			入力欄の末尾へ
