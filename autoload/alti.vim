@@ -238,9 +238,7 @@ function! s:_cmpwin.select_move(direction) "{{{
 endfunction
 "}}}
 function! s:_cmpwin.select_insert() "{{{
-  let self.selected_row = line('.')
-  let candidates = self._get_buildelm()[0]
-  let selected = get(candidates, self.selected_row-1, '')
+  let selected = self._get_selected()
   if selected==''
     return
   end
@@ -252,6 +250,12 @@ function! s:_cmpwin.select_insert() "{{{
   if self.candidates != save_candidates
     unlet! self.selected_row
   end
+endfunction
+"}}}
+function! s:_cmpwin._get_selected() "{{{
+  let candidates = self._get_buildelm()[0]
+  let self.selected_row = line('.')
+  return get(candidates, self.selected_row-1, '')
 endfunction
 "}}}
 function! s:_cmpwin.turn_page(indec) "{{{
@@ -423,7 +427,7 @@ function! alti#init(define, ...)
   end
 endfunction
 
-function! alti#get_arginfo() "{{{
+function! alti#get_argstate() "{{{
   let ret = {'precursor': s:prompt.input[0], 'postcursor': s:prompt.input[1], 'inputline': s:prompt.inputline, 'cursoridx': s:argleadsholder.cursoridx, 'arglead': s:argleadsholder.arglead, 'ordinal': s:argleadsholder.ordinal}
   let ret.args = split(s:prompt.inputline, '\%(\\\@<!\s\)\+')
   return ret
@@ -444,14 +448,14 @@ function! s:default_compinsert(arglead, selected_candidate) "{{{
   return substitute(substitute(a:selected_candidate, "\t.*$", '', ''), '^'.a:arglead, '', '')
 endfunction
 "}}}
-function! s:default_submitted(input) "{{{
+function! s:default_submitted(input, laststate) "{{{
   if a:input =~ '^\s*$'
     return
   end
   exe a:input
 endfunction
 "}}}
-function! s:default_canceled(input) "{{{
+function! s:default_canceled(input, laststate) "{{{
 endfunction
 "}}}
 "==================
@@ -713,18 +717,24 @@ endfunction
 "}}}
 function! s:PrtExit() "{{{
   call s:cmpwin.comp_on_exit()
+  call s:argleadsholder._update_cursoridx()
+  call s:argleadsholder.update_arglead()
+  let state = extend(alti#get_argstate(), {'selected': s:cmpwin._get_selected()})
   let [canceledfunc, inputline] = s:prompt.get_exitfunc_elms('canceledfunc')
   call s:cmpwin.close()
   wincmd p
-  call call(canceledfunc, [inputline])
+  call call(canceledfunc, [inputline, state])
 endfunction
 "}}}
 function! s:PrtSubmit() "{{{
   call s:cmpwin.comp_on_exit()
+  call s:argleadsholder._update_cursoridx()
+  call s:argleadsholder.update_arglead()
+  let state = extend(alti#get_argstate(), {'selected': s:cmpwin._get_selected()})
   let [submittedfunc, inputline] = s:prompt.get_exitfunc_elms('submittedfunc')
   call s:cmpwin.close()
   wincmd p
-  call call(submittedfunc, [inputline])
+  call call(submittedfunc, [inputline, state])
 endfunction
 "}}}
 function! s:Nop() "{{{
