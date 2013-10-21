@@ -716,7 +716,7 @@ endfunction
 function! s:PrtExit() "{{{
   call s:argleadsholder._update_cursoridx()
   call s:argleadsholder.update_arglead()
-  let state = extend(alti#get_argstate(), {'selected': s:cmpwin._get_selected()})
+  let state = extend(alti#get_argstate(), {'lastselected': s:cmpwin._get_selected()})
   let [canceledfunc, inputline] = s:prompt.get_exitfunc_elms('canceledfunc')
   call s:cmpwin.close()
   wincmd p
@@ -726,7 +726,7 @@ endfunction
 function! s:PrtSubmit() "{{{
   call s:argleadsholder._update_cursoridx()
   call s:argleadsholder.update_arglead()
-  let state = extend(alti#get_argstate(), {'selected': s:cmpwin._get_selected()})
+  let state = extend(alti#get_argstate(), {'lastselected': s:cmpwin._get_selected()})
   let [submittedfunc, inputline] = s:prompt.get_exitfunc_elms('submittedfunc')
   call s:cmpwin.close()
   wincmd p
