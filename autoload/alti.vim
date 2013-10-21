@@ -421,7 +421,11 @@ function! alti#init(define, ...)
   end
 endfunction
 
-function! alti#get_argstate() "{{{
+function! alti#get_arginfo() "{{{
+  if !has_key(s:, 'cmpwin')
+    echoerr 'alti: when alti is not running, it is not possible to call alti#get_arginfo().'
+    return {}
+  end
   let ret = {'precursor': s:prompt.input[0], 'postcursor': s:prompt.input[1], 'inputline': s:prompt.inputline, 'cursoridx': s:argleadsholder.cursoridx, 'arglead': s:argleadsholder.arglead, 'ordinal': s:argleadsholder.ordinal}
   let ret.args = split(s:prompt.inputline, '\%(\\\@<!\s\)\+')
   return ret
