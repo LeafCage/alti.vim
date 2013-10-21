@@ -214,9 +214,6 @@ alti#init({define}, [{firstmessage}])		*alti#init*
 		渡される。既定関数は何もしない。
 	append_compsep (数値) :
 		非0なら、補完時に自動で空白を挟む。既定値は1である。
-	comp_on_exit (数値) :
-		非0なら、Submitやキャンセルなどでaltiを抜けるときに最後に選択
-		されている補完を完成させてから抜ける。既定値は0である。
 	type_mulibyte (数値) :
 		非0なら、マルチバイト文字を入力できるようにする。ただしカーソ
 		ルがコマンドラインの左下に常に表示されるようになる。">>> "のよ
@@ -226,6 +223,7 @@ alti#init({define}, [{firstmessage}])		*alti#init*
 
 alti#get_arginfo()				*alti#get_arginfo*
 	comp関数などの中で使える、現在の文脈を記した辞書を返す。
+	AltIバッファが存在しないときに呼ぶとエラーになる。
 	要素は以下の通り。
 	precursor  : カーソルより前の文字列
 	postcursor : カーソルを含むカーソルより後の文字列

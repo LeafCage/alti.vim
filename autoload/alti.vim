@@ -198,7 +198,7 @@ function! s:new_cmpwin(define) "{{{
   call s:_guicursor_enter()
   sil! exe 'hi AltILinePre '.( has("gui_running") ? 'gui' : 'cterm' ).'fg=bg'
   sy match AltILinePre '^>'
-  let _ = {'rest': restcmds, 'cw': cw_opts, 'compfunc': a:define.comp, 'compsep': a:define.append_compsep ? ' ' : '', 'compinsert': a:define.compinsert, 'candidates': [], 'page': 1, 'lastpage': 1, 'candidates_len': 0, 'do_comp_on_exit': a:define.comp_on_exit}
+  let _ = {'rest': restcmds, 'cw': cw_opts, 'compfunc': a:define.comp, 'compsep': a:define.append_compsep ? ' ' : '', 'compinsert': a:define.compinsert, 'candidates': [], 'page': 1, 'lastpage': 1, 'candidates_len': 0,}
   call extend(_, s:_cmpwin, 'keep')
   return _
 endfunction
@@ -281,12 +281,6 @@ endfunction
 function! s:_cmpwin._refresh_highlight() "{{{
   call clearmatches()
   cal matchadd('AltILinePre', '^>')
-endfunction
-"}}}
-function! s:_cmpwin.comp_on_exit() "{{{
-  if self.do_comp_on_exit
-    call self.select_insert()
-  end
 endfunction
 "}}}
 function! s:_cmpwin.close() "{{{
@@ -407,7 +401,7 @@ endfunction
 
 "=============================================================================
 "Main
-let s:dfl_define = {'default_text': '', 'static_text': '', 'prompt': 's:default_prompt', 'prompt_hl': 'Comment', 'comp': 's:default_comp', 'compinsert': 's:default_compinsert', 'submitted': 's:default_submitted', 'append_compsep': 1, 'comp_on_exit': 0, 'canceled': 's:default_canceled', 'type_multibyte': 0}
+let s:dfl_define = {'default_text': '', 'static_text': '', 'prompt': 's:default_prompt', 'prompt_hl': 'Comment', 'comp': 's:default_comp', 'compinsert': 's:default_compinsert', 'submitted': 's:default_submitted', 'append_compsep': 1, 'canceled': 's:default_canceled', 'type_multibyte': 0}
 function! alti#init(define, ...)
   let firstmess = substitute(get(a:, 1, ''), "^\n", '', '')
   call extend(a:define, s:dfl_define, 'keep')
@@ -716,7 +710,6 @@ function! s:PrtSelectInsert() "{{{
 endfunction
 "}}}
 function! s:PrtExit() "{{{
-  call s:cmpwin.comp_on_exit()
   call s:argleadsholder._update_cursoridx()
   call s:argleadsholder.update_arglead()
   let state = extend(alti#get_argstate(), {'selected': s:cmpwin._get_selected()})
@@ -727,7 +720,6 @@ function! s:PrtExit() "{{{
 endfunction
 "}}}
 function! s:PrtSubmit() "{{{
-  call s:cmpwin.comp_on_exit()
   call s:argleadsholder._update_cursoridx()
   call s:argleadsholder.update_arglead()
   let state = extend(alti#get_argstate(), {'selected': s:cmpwin._get_selected()})
