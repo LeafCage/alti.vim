@@ -575,6 +575,17 @@ function! s:_guicursor_enter() "{{{
   setl cul gcr=a:block-blinkon0-Cursor
 endfunction
 "}}}
+"Prt
+function! s:_exit_process(funcname) "{{{
+  call s:argleadsholder._update_cursoridx()
+  call s:argleadsholder.update_arglead()
+  let state = extend(alti#get_arginfo(), {'lastselected': s:cmpwin._get_selected()})
+  let [canceledfunc, inputline] = s:prompt.get_exitfunc_elms(a:funcname)
+  call s:cmpwin.close()
+  wincmd p
+  call call(canceledfunc, [inputline, state])
+endfunction
+"}}}
 
 "=============================================================================
 function! s:PrtAdd(char) "{{{
@@ -714,23 +725,11 @@ function! s:PrtSelectInsert() "{{{
 endfunction
 "}}}
 function! s:PrtExit() "{{{
-  call s:argleadsholder._update_cursoridx()
-  call s:argleadsholder.update_arglead()
-  let state = extend(alti#get_argstate(), {'lastselected': s:cmpwin._get_selected()})
-  let [canceledfunc, inputline] = s:prompt.get_exitfunc_elms('canceledfunc')
-  call s:cmpwin.close()
-  wincmd p
-  call call(canceledfunc, [inputline, state])
+  call s:_exit_process('canceledfunc')
 endfunction
 "}}}
 function! s:PrtSubmit() "{{{
-  call s:argleadsholder._update_cursoridx()
-  call s:argleadsholder.update_arglead()
-  let state = extend(alti#get_argstate(), {'lastselected': s:cmpwin._get_selected()})
-  let [submittedfunc, inputline] = s:prompt.get_exitfunc_elms('submittedfunc')
-  call s:cmpwin.close()
-  wincmd p
-  call call(submittedfunc, [inputline, state])
+  call s:_exit_process('submittedfunc')
 endfunction
 "}}}
 function! s:Nop() "{{{
