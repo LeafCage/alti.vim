@@ -198,7 +198,7 @@ function! s:new_cmpwin(define) "{{{
   call s:_guicursor_enter()
   sil! exe 'hi AltILinePre '.( has("gui_running") ? 'gui' : 'cterm' ).'fg=bg'
   sy match AltILinePre '^>'
-  let _ = {'rest': restcmds, 'cw': cw_opts, 'compfunc': a:define.comp, 'compsep': a:define.append_compsep ? ' ' : '', 'compinsert': a:define.compinsert, 'candidates': [], 'page': 1, 'lastpage': 1, 'candidates_len': 0,}
+  let _ = {'rest': restcmds, 'cw': cw_opts, 'compfunc': a:define.comp, 'compsep': a:define.append_compsep ? ' ' : '', 'insertstr': a:define.insertstr, 'candidates': [], 'page': 1, 'lastpage': 1, 'candidates_len': 0,}
   call extend(_, s:_cmpwin, 'keep')
   return _
 endfunction
@@ -243,7 +243,7 @@ function! s:_cmpwin.select_insert() "{{{
     return
   end
   call s:argleadsholder.update_arglead()
-  let str = call(self.compinsert, [s:argleadsholder.arglead, selected])
+  let str = call(self.insertstr, [s:argleadsholder.arglead, selected])
   call s:prompt.append(str. self.compsep)
   let save_candidates = copy(self.candidates)
   call self.update_candidates()
@@ -401,7 +401,7 @@ endfunction
 
 "=============================================================================
 "Main
-let s:dfl_define = {'default_text': '', 'static_text': '', 'prompt': 's:default_prompt', 'prompt_hl': 'Comment', 'comp': 's:default_comp', 'compinsert': 's:default_compinsert', 'submitted': 's:default_submitted', 'append_compsep': 1, 'canceled': 's:default_canceled', 'type_multibyte': 0}
+let s:dfl_define = {'default_text': '', 'static_text': '', 'prompt': 's:default_prompt', 'prompt_hl': 'Comment', 'comp': 's:default_comp', 'insertstr': 's:default_insertstr', 'submitted': 's:default_submitted', 'append_compsep': 1, 'canceled': 's:default_canceled', 'type_multibyte': 0}
 function! alti#init(define, ...)
   let firstmess = substitute(get(a:, 1, ''), "^\n", '', '')
   call extend(a:define, s:dfl_define, 'keep')
@@ -442,7 +442,7 @@ function! s:default_comp(arglead, cmdline, cursorpos) "{{{
   return []
 endfunction
 "}}}
-function! s:default_compinsert(arglead, selected_candidate) "{{{
+function! s:default_insertstr(arglead, selected_candidate) "{{{
   return substitute(substitute(a:selected_candidate, "\t.*$", '', ''), '^'.a:arglead, '', '')
 endfunction
 "}}}

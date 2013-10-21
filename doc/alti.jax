@@ -192,14 +192,14 @@ alti#init({define}, [{firstmessage}])		*alti#init*
 		(補完対象文字列,インプットライン全体,カーソル位置インデックス)
 		また、|alti#get_arginfo()|を使うことで補完対象についての更
 		なる情報が得られる（後述）。
-		また、標準のcompinsert関数はタブ文字以降を削除するようにしてい
+		また、標準のinsertstr関数はタブ文字以降を削除するようにしてい
 		るので、候補の後にタブ文字を置いて候補についての注釈を加えるこ
 		とが可能。既定関数は空リストを返す。
 	prompt (関数名) :
 		compと同じくArgLead, CmdLine, CursorPosの3つの引数を取る。
 		プロンプト文字列を返す。入力に応じてプロンプトを変化させること
 		が可能になる。既定関数が返すプロンプト文字列は ">>> "
-	compinsert (関数名) :
+	insertstr (関数名) :
 		選択された候補で補完を実行するときに、実際に挿入される文字列を
 		返す。ArgLead と SelectedCandidate(選ばれた候補)を引数に取る。
 		既定関数は、SelectedCandidateからArgLeadを削除した文字列を返し
