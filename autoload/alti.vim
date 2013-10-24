@@ -204,7 +204,7 @@ function! s:new_cmpwin(define) "{{{
 endfunction
 "}}}
 function! s:_cmpwin.update_candidates() "{{{
-  let self.candidates = call(self.compfunc, s:argleadsholder.get_funcargs())
+  let self.candidates = call(self.compfunc, s:argleadsholder.get_funcargs(), s:funcself)
 endfunction
 "}}}
 function! s:_cmpwin._get_viewcandidates(firstidx, lastidx) "{{{
@@ -243,7 +243,7 @@ function! s:_cmpwin.select_insert() "{{{
     return
   end
   call s:argleadsholder.update_arglead()
-  let str = call(self.insertstr, [s:argleadsholder.arglead, selected])
+  let str = call(self.insertstr, [s:argleadsholder.arglead, selected], s:funcself)
   call s:prompt.append(str. self.compsep)
   let save_candidates = copy(self.candidates)
   call self.update_candidates()
@@ -323,7 +323,7 @@ endfunction
 "}}}
 function! s:_prompt.echo() "{{{
   redraw
-  let prtbase = call(self.prtbasefunc, s:argleadsholder.get_funcargs())
+  let prtbase = call(self.prtbasefunc, s:argleadsholder.get_funcargs(), s:funcself)
   call s:_adjust_cmdheight(prtbase)
   if self.firstmess!=''
     let &cmdheight += s:_get_nlcount(self.firstmess)+1
@@ -401,11 +401,14 @@ endfunction
 
 "=============================================================================
 "Main
-let s:dfl_define = {'default_text': '', 'static_text': '', 'prompt': 's:default_prompt', 'prompt_hl': 'Comment', 'comp': 's:default_comp', 'insertstr': 's:default_insertstr', 'submitted': 's:default_submitted', 'append_compsep': 1, 'canceled': 's:default_canceled', 'type_multibyte': 0}
+let s:dfl_define = {'default_text': '', 'static_text': '', 'prompt': 's:default_prompt', 'prompt_hl': 'Comment', 'comp': 's:default_comp', 'insertstr': 's:default_insertstr', 'submitted': 's:default_submitted', 'append_compsep': 1, 'canceled': 's:default_canceled', 'type_multibyte': 0, 'preenter': 's:default_preenter'}
 function! alti#init(define, ...)
+  if has_key(s:, 'cmpwin')| return| end
   let firstmess = substitute(get(a:, 1, ''), "^\n", '', '')
   call extend(a:define, s:dfl_define, 'keep')
   let s:regholder = s:new_regholder()
+  let s:funcself = {}
+  call call(a:define.preenter, [], s:funcself)
   let s:glboptholder = s:new_glboptholder(a:define)
   let s:cmpwin = s:new_cmpwin(a:define)
   let s:prompt = s:new_prompt(a:define, firstmess)
@@ -434,6 +437,9 @@ endfunction
 
 
 "=============================================================================
+function! s:default_preenter() "{{{
+endfunction
+"}}}
 function! s:default_prompt(arglead, cmdline, cursorpos) "{{{
   return '>>> '
 endfunction
@@ -583,7 +589,8 @@ function! s:_exit_process(funcname) "{{{
   let [canceledfunc, inputline] = s:prompt.get_exitfunc_elms(a:funcname)
   call s:cmpwin.close()
   wincmd p
-  call call(canceledfunc, [inputline, state])
+  call call(canceledfunc, [inputline, state], s:funcself)
+  unlet s:funcself
 endfunction
 "}}}
 
