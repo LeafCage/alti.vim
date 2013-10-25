@@ -407,7 +407,7 @@ function! alti#init(define, ...)
   let firstmess = substitute(get(a:, 1, ''), "^\n", '', '')
   call extend(a:define, s:dfl_define, 'keep')
   let s:regholder = s:new_regholder()
-  let s:funcself = {}
+  let s:funcself = get(a:, 2, {})
   call call(a:define.preenter, [], s:funcself)
   let s:glboptholder = s:new_glboptholder(a:define)
   let s:cmpwin = s:new_cmpwin(a:define)
@@ -590,7 +590,7 @@ function! s:_exit_process(funcname) "{{{
   call s:cmpwin.close()
   wincmd p
   call call(canceledfunc, [inputline, state], s:funcself)
-  unlet s:funcself
+  unlet! s:funcself
 endfunction
 "}}}
 

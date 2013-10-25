@@ -175,10 +175,13 @@ g:alti_getreg_mappings				*g:alti_getreg_mappings*
 ------------------------------------------------------------------------------
 関数						*alti-functions*
 
-alti#init({define}, [{firstmessage}])		*alti#init*
-	この関数にaltiの定義を書いた辞書を渡すとaltiが実行される。
+						*alti#init()*
+alti#init({define}, [{firstmessage}, [{funcself}]])
+	この関数にaltiの定義を書いた辞書{define}を渡すとaltiが実行される。
 	文字列{firstmessage}を渡すと開始直後にのみそれが表示される。
-	定義用の辞書の要素は以下の通り。いずれも省略可能。
+	辞書{funcself}を渡すと、{define}で指定した関数内での変数"self"にそれが
+	使われる。(functionにdict属性をつけた場合のみ。詳しくは後述。)
+	定義用の辞書{define}の要素は以下の通り。いずれも省略可能。
 
 	default_text (文字列) :
 		開始時に標準で入力されているテキスト。既定では空文字である。
@@ -227,9 +230,11 @@ alti#init({define}, [{firstmessage}])		*alti#init*
 		うに、プロンプト文字を長めに作って入力文字列にかからないように
 		すれば少しは気にならなくなるかも知れない。既定値は0である。
 
-	関数名に指定した関数にはdict属性を指定しても良い。そうした場合、self変
-	数が利用できる。このself変数は初期値は空の辞書で、他のaltiの関数内でも
-	同じものを参照できる。altiの同一インスタンス内で有効。 >
+	関数名に指定した関数にはdict属性を指定しても良い。そうした場合、"self"
+	変数が利用できる。この"self"変数は初期値は空の辞書で、他のaltiの関数内
+	でも同じものを参照できる。|alti#init()|の第三引数{funcself}を渡すとそ
+	れが"self"に代入される。altiが終了されるまで(submitted関数と、canceled
+	関数の終了まで)で有効。 >
 		function! alti#xxx#preenter() dict
 		  let self.filetype = &filetype
 		endfunction
@@ -238,7 +243,7 @@ alti#init({define}, [{firstmessage}])		*alti#init*
 		endfunction
 
 
-alti#get_arginfo()				*alti#get_arginfo*
+alti#get_arginfo()				*alti#get_arginfo()*
 	comp関数などの中で使える、現在の文脈を記した辞書を返す。
 	AltIバッファが存在しないときに呼ぶとエラーになる。
 	要素は以下の通り。
