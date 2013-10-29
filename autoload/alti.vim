@@ -589,7 +589,7 @@ function! s:_exit_process(funcname) "{{{
   let [canceledfunc, inputline] = s:prompt.get_exitfunc_elms(a:funcname)
   call s:cmpwin.close()
   wincmd p
-  call call(canceledfunc, [inputline, state], s:funcself)
+  call call(canceledfunc, [inputline, state], get(s:, 'funcself', {}))
   unlet! s:funcself
 endfunction
 "}}}
