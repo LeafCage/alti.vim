@@ -401,14 +401,14 @@ endfunction
 
 "=============================================================================
 "Main
-let s:dfl_define = {'default_text': '', 'static_text': '', 'prompt': 's:default_prompt', 'prompt_hl': 'Comment', 'comp': 's:default_comp', 'insertstr': 's:default_insertstr', 'submitted': 's:default_submitted', 'append_compsep': 1, 'canceled': 's:default_canceled', 'type_multibyte': 0, 'preenter': 's:default_preenter'}
+let s:dfl_define = {'default_text': '', 'static_text': '', 'prompt': 's:default_prompt', 'prompt_hl': 'Comment', 'comp': 's:default_comp', 'insertstr': 's:default_insertstr', 'submitted': 's:default_submitted', 'append_compsep': 1, 'canceled': 's:default_canceled', 'type_multibyte': 0, 'enter': 's:default_enter'}
 function! alti#init(define, ...)
   if has_key(s:, 'cmpwin')| return| end
   let firstmess = substitute(get(a:, 1, ''), "^\n", '', '')
   call extend(a:define, s:dfl_define, 'keep')
   let s:regholder = s:new_regholder()
   let s:funcself = get(a:, 2, {})
-  call call(a:define.preenter, [], s:funcself)
+  call call(a:define.enter, [], s:funcself)
   let s:glboptholder = s:new_glboptholder(a:define)
   let s:cmpwin = s:new_cmpwin(a:define)
   let s:prompt = s:new_prompt(a:define, firstmess)
@@ -437,7 +437,7 @@ endfunction
 
 
 "=============================================================================
-function! s:default_preenter() "{{{
+function! s:default_enter() "{{{
 endfunction
 "}}}
 function! s:default_prompt(arglead, cmdline, cursorpos) "{{{

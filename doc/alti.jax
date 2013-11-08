@@ -188,7 +188,7 @@ alti#init({define}, [{firstmessage}, [{funcself}]])
 	static_text  (文字列) :
 		default_textと似ているが削除されない。ユーザ定義コマンド用の補
 		完関数をそのまま利用するときに使う。既定では空文字である。
-	preenter (関数名) :
+	enter (関数名) :
 		alti開始前の、Altiバッファに移る前に呼ばれる。元いたバッファの
 		値を利用するときにこの関数内で取得するとよい。引数は取らない。
 	comp (関数名) :
@@ -235,7 +235,7 @@ alti#init({define}, [{firstmessage}, [{funcself}]])
 	でも同じものを参照できる。|alti#init()|の第三引数{funcself}を渡すとそ
 	れが"self"に代入される。altiが終了されるまで(submitted関数と、canceled
 	関数の終了まで)で有効。 >
-		function! alti#xxx#preenter() dict
+		function! alti#xxx#enter() dict
 		  let self.filetype = &filetype
 		endfunction
 		function! alti#xxx#comp() dict
