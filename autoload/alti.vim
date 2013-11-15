@@ -590,7 +590,9 @@ function! s:_exit_process(funcname) "{{{
   call s:cmpwin.close()
   wincmd p
   call call(canceledfunc, [inputline, state], get(s:, 'funcself', {}))
-  unlet! s:funcself
+  if !has_key(s:, 'cmpwin')
+    unlet s:funcself
+  end
 endfunction
 "}}}
 
