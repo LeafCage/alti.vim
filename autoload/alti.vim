@@ -198,7 +198,7 @@ function! s:new_cmpwin(define) "{{{
   call s:_guicursor_enter()
   sil! exe 'hi AltILinePre '.( has("gui_running") ? 'gui' : 'cterm' ).'fg=bg'
   sy match AltILinePre '^>'
-  let _ = {'rest': restcmds, 'cw': cw_opts, 'compfunc': a:define.comp, 'compsep': a:define.append_compsep ? ' ' : '', 'insertstr': a:define.insertstr, 'candidates': [], 'page': 1, 'lastpage': 1, 'candidates_len': 0,}
+  let _ = {'rest': restcmds, 'cw': cw_opts, 'compfunc': a:define.comp, 'compsep': a:define.append_compsep ? ' ' : '', 'insertstr': a:define.insertstr, 'rm_arglead_oncomp': a:define.rm_arglead_oncomp, 'candidates': [], 'page': 1, 'lastpage': 1, 'candidates_len': 0,}
   call extend(_, s:_cmpwin, 'keep')
   return _
 endfunction
@@ -244,6 +244,9 @@ function! s:_cmpwin.select_insert() "{{{
   end
   call s:argleadsholder.update_arglead()
   let str = call(self.insertstr, [s:argleadsholder.arglead, selected], s:funcself)
+  if self.rm_arglead_oncomp
+    call s:prompt.rm_arglead()
+  end
   call s:prompt.append(str. self.compsep)
   let save_candidates = copy(self.candidates)
   call self.update_candidates()
@@ -344,6 +347,10 @@ function! s:_prompt.append(str) "{{{
   let self.input[0] .= a:str
 endfunction
 "}}}
+function! s:_prompt.rm_arglead() "{{{
+  let self.input[0] = substitute(self.input[0], '\s\?\zs\S\{-1,}$', '', '')
+endfunction
+"}}}
 function! s:_prompt.bs() "{{{
   let self.input[0] = substitute(self.input[0], '.$', '', '')
 endfunction
@@ -401,7 +408,7 @@ endfunction
 
 "=============================================================================
 "Main
-let s:dfl_define = {'default_text': '', 'static_text': '', 'prompt': 's:default_prompt', 'prompt_hl': 'Comment', 'comp': 's:default_comp', 'insertstr': 's:default_insertstr', 'submitted': 's:default_submitted', 'append_compsep': 1, 'canceled': 's:default_canceled', 'type_multibyte': 0, 'enter': 's:default_enter'}
+let s:dfl_define = {'default_text': '', 'static_text': '', 'prompt': 's:default_prompt', 'prompt_hl': 'Comment', 'comp': 's:default_comp', 'insertstr': 'alti#insertstr_posttabannotation_rm_arglead', 'submitted': 's:default_submitted', 'append_compsep': 1, 'canceled': 's:default_canceled', 'type_multibyte': 0, 'enter': 's:default_enter', 'rm_arglead_oncomp': 1}
 function! alti#init(define, ...)
   if has_key(s:, 'cmpwin')| return| end
   let firstmess = substitute(get(a:, 1, ''), "^\n", '', '')
@@ -435,6 +442,31 @@ function! alti#get_arginfo() "{{{
 endfunction
 "}}}
 
+"==================
+function! alti#insertstr_posttabannotation_rm_arglead(arglead, selected_candidate) "{{{
+  return substitute(a:selected_candidate, '\t.*$', '', '')
+endfunction
+"}}}
+function! alti#insertstr_posttabannotation_norm_arglead(arglead, selected_candidate) "{{{
+  return substitute(substitute(a:selected_candidate, '\t.*$', '', ''), '^'.a:arglead, '', '')
+endfunction
+"}}}
+function! alti#insertstr_pretabannotation_rm_arglead(arglead, selected_candidate) "{{{
+  return substitute(a:selected_candidate, '^.*\t', '', '')
+endfunction
+"}}}
+function! alti#insertstr_pretabannotation_norm_arglead(arglead, selected_candidate) "{{{
+  return substitute(substitute(a:selected_candidate, '^.*\t', '', ''), '^'.a:arglead, '', '')
+endfunction
+"}}}
+function! alti#insertstr_raw_rm_arglead(arglead, selected_candidate) "{{{
+  return a:selected_candidate
+endfunction
+"}}}
+function! alti#insertstr_raw_norm_arglead(arglead, selected_candidate) "{{{
+  return substitute(a:selected_candidate, '^'.a:arglead, '', '')
+endfunction
+"}}}
 
 "=============================================================================
 function! s:default_enter() "{{{
@@ -446,10 +478,6 @@ endfunction
 "}}}
 function! s:default_comp(arglead, cmdline, cursorpos) "{{{
   return []
-endfunction
-"}}}
-function! s:default_insertstr(arglead, selected_candidate) "{{{
-  return substitute(substitute(a:selected_candidate, "\t.*$", '', ''), '^'.a:arglead, '', '')
 endfunction
 "}}}
 function! s:default_submitted(input, laststate) "{{{
