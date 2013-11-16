@@ -408,11 +408,14 @@ endfunction
 
 "=============================================================================
 "Main
-let s:dfl_define = {'default_text': '', 'static_text': '', 'prompt': 's:default_prompt', 'prompt_hl': 'Comment', 'comp': 's:default_comp', 'insertstr': 'alti#insertstr_posttabannotation_rm_arglead', 'submitted': 's:default_submitted', 'append_compsep': 1, 'canceled': 's:default_canceled', 'type_multibyte': 0, 'enter': 's:default_enter', 'rm_arglead_oncomp': 1}
+let s:dfl_define = {'default_text': '', 'static_text': '', 'prompt': 's:default_prompt', 'prompt_hl': 'Comment', 'comp': 's:default_comp', 'submitted': 's:default_submitted', 'append_compsep': 1, 'canceled': 's:default_canceled', 'type_multibyte': 0, 'enter': 's:default_enter', 'rm_arglead_oncomp': 1}
 function! alti#init(define, ...)
   if has_key(s:, 'cmpwin')| return| end
   let firstmess = substitute(get(a:, 1, ''), "^\n", '', '')
   call extend(a:define, s:dfl_define, 'keep')
+  if has_key(a:define, 'insertstr')
+    let a:define.insertstr = a:define.rm_arglead_oncomp ? 'alti#insertstr_posttab_annotation_rm_arglead' : 'alti#insertstr_posttab_annotation_norm_arglead'
+  end
   let s:regholder = s:new_regholder()
   let s:funcself = get(a:, 2, {})
   call call(a:define.enter, [], s:funcself)
@@ -443,19 +446,19 @@ endfunction
 "}}}
 
 "==================
-function! alti#insertstr_posttabannotation_rm_arglead(arglead, selected_candidate) "{{{
+function! alti#insertstr_posttab_annotation_rm_arglead(arglead, selected_candidate) "{{{
   return substitute(a:selected_candidate, '\t.*$', '', '')
 endfunction
 "}}}
-function! alti#insertstr_posttabannotation_norm_arglead(arglead, selected_candidate) "{{{
+function! alti#insertstr_posttab_annotation_norm_arglead(arglead, selected_candidate) "{{{
   return substitute(substitute(a:selected_candidate, '\t.*$', '', ''), '^'.a:arglead, '', '')
 endfunction
 "}}}
-function! alti#insertstr_pretabannotation_rm_arglead(arglead, selected_candidate) "{{{
+function! alti#insertstr_pretab_annotation_rm_arglead(arglead, selected_candidate) "{{{
   return substitute(a:selected_candidate, '^.*\t', '', '')
 endfunction
 "}}}
-function! alti#insertstr_pretabannotation_norm_arglead(arglead, selected_candidate) "{{{
+function! alti#insertstr_pretab_annotation_norm_arglead(arglead, selected_candidate) "{{{
   return substitute(substitute(a:selected_candidate, '^.*\t', '', ''), '^'.a:arglead, '', '')
 endfunction
 "}}}
