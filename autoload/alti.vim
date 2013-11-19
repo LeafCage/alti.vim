@@ -33,6 +33,8 @@ let s:prtmaps['PrtSelectMove("b")'] = ['<End>', '<kEnd>']
 let s:prtmaps['PrtSelectInsert()'] = ['<Tab>', '<C-y>']
 let s:prtmaps['PrtExit()'] = ['<Esc>', '<C-c>', '<C-g>']
 let s:prtmaps['PrtSubmit()'] = ['<CR>']
+let s:prtmaps['ToggleType(1)'] = ['<C-o>', '<C-_>', '<C-Down>']
+let s:prtmaps['ToggleType(-1)'] = ['<C-z>', '<C-]>', '<C-^>', '<C-Up>']
 let s:prtmaps['Nop()'] = ['<BS>', '<C-]>', '<Del>', '<C-d>', '<C-w>', '<C-u>', '<C-r>', '<C-n>', '<C-p>', '<C-a>', '<C-e>', '<C-h>', '<Left>', '<C-l>', '<Right>', '<C-i>', '<C-o>', '<PageDown>', '<kPageDown>', '<PageUp>', '<kPageUp>', '<C-j>', '<Down>', '<C-k>', '<Up>', '<Home>', '<kHome>', '<End>', '<kEnd>', '<C-v>', '<C-y>', '<Esc>', '<C-c>', '<C-g>', '<CR>', '<C-Tab>', '<S-Tab>', '<C-CR>', '<C-x>', '<C-s>', '<C-t>', '<C-z>', '<C-\>', '<C-^>', '<C-Up>', '<C-Down>', '<C-Left>', '<C-Right>', '<S-Up>', '<S-Down>', '<S-Left>', '<S-Right>', '<Insert>', '<2-LeftMouse>', '<MiddleMouse>', '<RightMouse>',]
 
 call extend(s:prtmaps, get(g:, 'alti_prompt_mappings', {}))
@@ -79,12 +81,12 @@ function! s:histholder.save() "{{{
   call self.reset()
 endfunction
 "}}}
-function! s:histholder.get_nexthist(indec) "{{{
+function! s:histholder.get_nexthist(incdec) "{{{
   let self.hists[0] = self.is_inputsaved ? self.hists[0] : s:prompt.get_inputline()
   let self.hists[0] = self.hists[0]==get(self.hists, 1, "\n") ? '' : self.hists[0]
   let self.is_inputsaved = 1
   let histlen = len(self.hists)
-  let self.idx += a:indec
+  let self.idx += a:incdec
   let self.idx = self.idx<0 ? 0 : self.idx < histlen ? self.idx : histlen > 1 ? histlen-1 : 0
   return self.hists[self.idx]
 endfunction
@@ -261,8 +263,8 @@ function! s:_cmpwin._get_selected() "{{{
   return get(candidates, self.selected_row-1, '')
 endfunction
 "}}}
-function! s:_cmpwin.turn_page(indec) "{{{
-  let self.page += a:indec
+function! s:_cmpwin.turn_page(incdec) "{{{
+  let self.page += a:incdec
   let self.page = self.page<1 ? self.lastpage : self.page>self.lastpage ? 1 : self.page
 endfunction
 "}}}
@@ -301,7 +303,7 @@ function! s:_cmpwin.close() "{{{
   echo
   redraw
   call s:histholder.save()
-  unlet s:cmpwin s:prompt s:regholder s:argleadsholder
+  unlet s:cmpwin s:prompt s:regholder s:argleadsholder s:defines
 endfunction
 "}}}
 "==================
@@ -369,8 +371,8 @@ function! s:_prompt.clear() "{{{
   let self.input = ['', '']
 endfunction
 "}}}
-function! s:_prompt.insert_history(indec) "{{{
-  let self.input = [s:histholder.get_nexthist(a:indec), '']
+function! s:_prompt.insert_history(incdec) "{{{
+  let self.input = [s:histholder.get_nexthist(a:incdec), '']
 endfunction
 "}}}
 function! s:_prompt.cursor_start() "{{{
@@ -408,28 +410,32 @@ endfunction
 
 "=============================================================================
 "Main
-let s:dfl_define = {'default_text': '', 'static_text': '', 'prompt': 's:default_prompt', 'prompt_hl': 'Comment', 'comp': 's:default_comp', 'submitted': 's:default_submitted', 'append_compsep': 1, 'canceled': 's:default_canceled', 'type_multibyte': 0, 'enter': 's:default_enter', 'rm_arglead_oncomp': 1}
+let s:dfl_define = {'name': '', 'default_text': '', 'static_text': '', 'prompt': 's:default_prompt', 'prompt_hl': 'Comment', 'comp': 's:default_comp', 'canceled': 's:default_canceled', 'submitted': 's:default_submitted', 'append_compsep': 1, 'type_multibyte': 0, 'rm_arglead_oncomp': 1}
 function! alti#init(define, ...)
   if has_key(s:, 'cmpwin')| return| end
   let firstmess = substitute(get(a:, 1, ''), "^\n", '', '')
-  call extend(a:define, s:dfl_define, 'keep')
-  if has_key(a:define, 'insertstr')
-    let a:define.insertstr = a:define.rm_arglead_oncomp ? 'alti#insertstr_posttab_annotation_rm_arglead' : 'alti#insertstr_posttab_annotation_norm_arglead'
+  let s:defines = {'idx': 0}
+  let s:defines.list = type(a:define)==type([]) ? a:define==[] ? [{}] : a:define : [a:define]
+  let s:defines.len = len(s:defines.list)
+  let define = s:defines.list[0]
+  call extend(define, s:dfl_define, 'keep')
+  if !has_key(define, 'insertstr')
+    let define.insertstr = define.rm_arglead_oncomp ? 'alti#insertstr_posttab_annotation_rm_arglead' : 'alti#insertstr_posttab_annotation_norm_arglead'
   end
   let s:regholder = s:new_regholder()
   let s:funcself = get(a:, 2, {})
-  call call(a:define.enter, [], s:funcself)
-  let s:glboptholder = s:new_glboptholder(a:define)
-  let s:cmpwin = s:new_cmpwin(a:define)
-  let s:prompt = s:new_prompt(a:define, firstmess)
-  let s:argleadsholder = s:new_argleadsholder(a:define)
+  call map(copy(s:defines.list), 'call(get(v:val, "enter", "s:default_enter"), [], s:funcself)')
+  let s:glboptholder = s:new_glboptholder(define)
+  let s:cmpwin = s:new_cmpwin(define)
+  let s:prompt = s:new_prompt(define, firstmess)
+  let s:argleadsholder = s:new_argleadsholder(define)
   call s:_mapping_input()
   call s:_mapping_term_arrowkeys()
   call s:_mapping_prtmaps()
   call s:cmpwin.update_candidates()
   call s:cmpwin.buildview()
   call s:prompt.echo()
-  if a:define.type_multibyte
+  if define.type_multibyte
     call s:_keyloop()
   end
 endfunction
@@ -534,7 +540,7 @@ endfunction
 "}}}
 let s:TYPE_NUM = type(0)
 function! s:_keyloop() "{{{
-  while has_key(s:, 'prompt')
+  while has_key(s:, 'prompt') && get(s:defines, 'enable_keyloop', 1)
     redraw
     let nr = getchar()
     let char = type(nr)==s:TYPE_NUM ? nr2char(nr) : nr
@@ -689,21 +695,21 @@ function! s:PrtInsertReg() "{{{
   end
 endfunction
 "}}}
-function! s:PrtHistory(indec) "{{{
+function! s:PrtHistory(incdec) "{{{
   if !g:alti_max_history
     return
   end
-  call s:prompt.insert_history(a:indec)
+  call s:prompt.insert_history(a:incdec)
   call s:cmpwin.update_candidates()
   call s:cmpwin.buildview()
   call s:prompt.echo()
 endfunction
 "}}}
-function! s:PrtSmartHistory(indec) "{{{
+function! s:PrtSmartHistory(incdec) "{{{
   if s:histholder.idx == 0
     call s:PrtSelectInsert()
   else
-    call s:PrtHistory(a:indec)
+    call s:PrtHistory(a:incdec)
   end
 endfunction
 "}}}
@@ -770,6 +776,38 @@ endfunction
 "}}}
 function! s:PrtSubmit() "{{{
   call s:_exit_process('submittedfunc')
+endfunction
+"}}}
+function! s:ToggleType(incdec) "{{{
+  if s:defines.len<2
+    return
+  end
+  let idx = s:defines.idx + a:incdec
+  let s:defines.idx = idx >= s:defines.len ? 0 : idx<0 ? s:defines.len-1 : idx
+  let define = s:defines.list[s:defines.idx]
+  call extend(define, s:dfl_define, 'keep')
+  if !has_key(define, 'insertstr')
+    let define.insertstr = define.rm_arglead_oncomp ? 'alti#insertstr_posttab_annotation_rm_arglead' : 'alti#insertstr_posttab_annotation_norm_arglead'
+  end
+  let &imdisable = define.type_multibyte ? 0 : 1
+  let s:cmpwin.compfunc = define.comp
+  let s:cmpwin.compsep = define.append_compsep ? ' ' : ''
+  let s:cmpwin.insertstr = define.insertstr
+  let s:cmpwin.rm_arglead_oncomp = define.rm_arglead_oncomp
+  let s:prompt.prtbasefunc = define.prompt
+  let s:prompt.submittedfunc = define.submitted
+  let s:prompt.canceledfunc = define.canceled
+  let s:prompt.static_text = define.static_text=='' ? '' : define.static_text. ' '
+  exe 'hi link AltIPrtBase' define.prompt_hl
+  call s:cmpwin.update_candidates()
+  call s:cmpwin.buildview()
+  call s:prompt.echo()
+  if define.type_multibyte
+    let s:defines.enable_keyloop = 1
+    call s:_keyloop()
+  else
+    let s:defines.enable_keyloop = 0
+  end
 endfunction
 "}}}
 function! s:Nop() "{{{
