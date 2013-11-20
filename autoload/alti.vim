@@ -119,7 +119,7 @@ endfunction
 "==================
 let s:_regholder = {}
 function! s:new_regholder() "{{{
-  let _ = {'cword': expand('<cword>', 1), 'cWORD': expand('<cWORD>, 1'), 'cfile': expand('<cfile>', 1)}
+  let _ = {'cword': expand('<cword>', 1), 'cWORD': expand('<cWORD>', 1), 'cfile': expand('<cfile>', 1)}
   call extend(_, s:_regholder)
   return _
 endfunction
@@ -143,7 +143,7 @@ function! s:_regholder.expr() "{{{
   let save_gcr = &gcr
   set gcr&
   try
-    return eval(input('='))
+    return eval(input('=', '', 'expression'))
   catch
     return ''
   finally
