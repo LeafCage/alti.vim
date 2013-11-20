@@ -3,6 +3,7 @@ let s:save_cpo = &cpo| set cpo&vim
 "=============================================================================
 let g:alti_max_history = get(g:, 'alti_max_history', exists('+history')? &hi: 20)
 let g:alti_cache_dir = get(g:, 'alti_cache_dir', '~/.cache/alti')
+let g:alti_disable_statusline = get(g:, 'disable_statusline', 0)
 "======================================
 aug AltI
   autocmd!
@@ -150,6 +151,34 @@ function! s:_regholder.expr() "{{{
     let &gcr = save_gcr
     call s:prompt.echo()
   endtry
+endfunction
+"}}}
+"==================
+let s:_stlmgr = {}
+function! s:new_stlmgr(define) "{{{
+  hi link AltIMode1 Character
+  hi link AltIMode2 LineNr
+  let _ = {'crrtype': '%#AltIMode1# '.(a:define.name=='' ? ' alti'.(s:defines.idx+1).' ' : a:define.name).' %*'}
+  let nextidx = s:defines.idx+1 >=s:defines.len ? 0 : s:defines.idx+1
+  let previdx = s:defines.idx-1 <0 ? s:defines.len-1 : s:defines.idx-1
+  let _.typenames = s:defines.len==1 ? ' {'._.crrtype.'} ' :
+    \ s:defines.len==2 ? '{'._.crrtype.'}='.s:_sidetypename(nextidx) :
+    \ s:_sidetypename(previdx).'={'._.crrtype.'}='.s:_sidetypename(nextidx)
+  "let candiescount = 
+  "let page = 
+  let &l:stl = _.typenames
+  call extend(_, s:_stlmgr, 'keep')
+  return _
+endfunction
+"}}}
+function! s:_stlmgr.on_toggletype() "{{{
+  let self.crrtype = '%#AltIMode1# '.(s:defines.list[s:defines.idx].name=='' ? ' alti'.(s:defines.idx+1).' ' : s:defines.list[s:defines.idx].name).' %*'
+  let nextidx = s:defines.idx+1 >=s:defines.len ? 0 : s:defines.idx+1
+  let previdx = s:defines.idx-1 <0 ? s:defines.len-1 : s:defines.idx-1
+  let self.typenames = s:defines.len==1 ? ' {'.self.crrtype.'} ' :
+    \ s:defines.len==2 ? '{'.self.crrtype.'}='.s:_sidetypename(nextidx) :
+    \ s:_sidetypename(previdx).'={'.self.crrtype.'}='.s:_sidetypename(nextidx)
+  let &l:stl = self.typenames
 endfunction
 "}}}
 "==================
@@ -303,7 +332,7 @@ function! s:_cmpwin.close() "{{{
   echo
   redraw
   call s:histholder.save()
-  unlet s:cmpwin s:prompt s:regholder s:argleadsholder s:defines
+  unlet! s:cmpwin s:prompt s:regholder s:argleadsholder s:defines s:stlmgr
 endfunction
 "}}}
 "==================
@@ -410,7 +439,7 @@ endfunction
 
 "=============================================================================
 "Main
-let s:dfl_define = {'name': '', 'default_text': '', 'static_text': '', 'prompt': 's:default_prompt', 'prompt_hl': 'Comment', 'comp': 's:default_comp', 'canceled': 's:default_canceled', 'submitted': 's:default_submitted', 'append_compsep': 1, 'type_multibyte': 0, 'rm_arglead_oncomp': 1}
+let s:dfl_define = {'name': '', 'sname': '', 'default_text': '', 'static_text': '', 'prompt': 's:default_prompt', 'prompt_hl': 'Comment', 'comp': 's:default_comp', 'canceled': 's:default_canceled', 'submitted': 's:default_submitted', 'append_compsep': 1, 'type_multibyte': 0, 'rm_arglead_oncomp': 1}
 function! alti#init(define, ...)
   if has_key(s:, 'cmpwin')| return| end
   let firstmess = substitute(get(a:, 1, ''), "^\n", '', '')
@@ -435,6 +464,9 @@ function! alti#init(define, ...)
   call s:cmpwin.update_candidates()
   call s:cmpwin.buildview()
   call s:prompt.echo()
+  if !g:alti_disable_statusline
+    let s:stlmgr = s:new_stlmgr(define)
+  end
   if define.type_multibyte
     call s:_keyloop()
   end
@@ -592,6 +624,17 @@ function! s:_writecachefile(filename, list) "{{{
     call mkdir(dir, 'p')
   end
   call writefile(a:list, dir. '/'. a:filename)
+endfunction
+"}}}
+"s:stlmgr
+function! s:_sidetypename(idx) "{{{
+  let define = s:defines.list[a:idx]
+  if get(define, 'sname', '')!=''
+    return '<'. define.sname. '>'
+  elseif get(define, 'name', '')!=''
+    return '<'. define.name. '>'
+  end
+  return '< alti'. (a:idx+1). ' >'
 endfunction
 "}}}
 "s:cmpwin
@@ -802,6 +845,9 @@ function! s:ToggleType(incdec) "{{{
   call s:cmpwin.update_candidates()
   call s:cmpwin.buildview()
   call s:prompt.echo()
+  if !g:alti_disable_statusline
+    call s:stlmgr.on_toggletype()
+  end
   if define.type_multibyte
     let s:defines.enable_keyloop = 1
     call s:_keyloop()
