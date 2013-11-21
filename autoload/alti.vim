@@ -4,7 +4,7 @@ scriptencoding utf-8
 "=============================================================================
 let g:alti_max_history = get(g:, 'alti_max_history', exists('+history')? &hi: 20)
 let g:alti_cache_dir = get(g:, 'alti_cache_dir', '~/.cache/alti')
-let g:alti_disable_statusline = get(g:, 'disable_statusline', 0)
+let g:alti_enable_statusline = get(g:, 'enable_statusline', 0)
 "======================================
 aug AltI
   autocmd!
@@ -461,7 +461,7 @@ function! alti#init(define, ...)
   call s:cmpwin.update_candidates()
   call s:cmpwin.buildview()
   call s:prompt.echo()
-  if !g:alti_disable_statusline
+  if g:alti_enable_statusline
     let s:stlmgr = s:new_stlmgr(define)
   end
   if define.type_multibyte
@@ -838,7 +838,7 @@ function! s:ToggleType(incdec) "{{{
   call s:cmpwin.update_candidates()
   call s:cmpwin.buildview()
   call s:prompt.echo()
-  if !g:alti_disable_statusline
+  if g:alti_enable_statusline
     call s:stlmgr.on_toggletype()
   end
   if define.type_multibyte
