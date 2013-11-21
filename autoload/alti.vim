@@ -1,5 +1,6 @@
 if exists('s:save_cpo')| finish| endif
 let s:save_cpo = &cpo| set cpo&vim
+scriptencoding utf-8
 "=============================================================================
 let g:alti_max_history = get(g:, 'alti_max_history', exists('+history')? &hi: 20)
 let g:alti_cache_dir = get(g:, 'alti_cache_dir', '~/.cache/alti')
@@ -229,7 +230,7 @@ function! s:new_cmpwin(define) "{{{
   call s:_guicursor_enter()
   sil! exe 'hi AltILinePre '.( has("gui_running") ? 'gui' : 'cterm' ).'fg=bg'
   sy match AltILinePre '^>'
-  let _ = {'rest': restcmds, 'cw': cw_opts, 'compfunc': a:define.comp, 'compsep': a:define.append_compsep ? ' ' : '', 'insertstr': a:define.insertstr, 'rm_arglead_oncomp': a:define.rm_arglead_oncomp, 'candidates': [], 'page': 1, 'lastpage': 1, 'candidates_len': 0,}
+  let _ = {'rest': restcmds, 'cw': cw_opts, 'compfunc': a:define.comp, 'compsep': a:define.append_compsep ? ' ' : '', 'insertstr': a:define.insertstr, 'candidates': [], 'page': 1, 'lastpage': 1, 'candidates_len': 0,}
   call extend(_, s:_cmpwin, 'keep')
   return _
 endfunction
@@ -274,10 +275,9 @@ function! s:_cmpwin.select_insert() "{{{
     return
   end
   call s:argleadsholder.update_arglead()
+  let self.on_comp = 1
   let str = call(self.insertstr, [s:argleadsholder.arglead, selected], s:funcself)
-  if self.rm_arglead_oncomp
-    call s:prompt.rm_arglead()
-  end
+  unlet self.on_comp
   call s:prompt.append(str. self.compsep)
   let save_candidates = copy(self.candidates)
   call self.update_candidates()
@@ -439,7 +439,7 @@ endfunction
 
 "=============================================================================
 "Main
-let s:dfl_define = {'name': '', 'sname': '', 'default_text': '', 'static_text': '', 'prompt': 's:default_prompt', 'prompt_hl': 'Comment', 'comp': 's:default_comp', 'canceled': 's:default_canceled', 'submitted': 's:default_submitted', 'append_compsep': 1, 'type_multibyte': 0, 'rm_arglead_oncomp': 1}
+let s:dfl_define = {'name': '', 'sname': '', 'default_text': '', 'static_text': '', 'prompt': 's:default_prompt', 'prompt_hl': 'Comment', 'comp': 's:default_comp', 'insertstr': 'alti#insertstr_posttab_annotation', 'canceled': 's:default_canceled', 'submitted': 's:default_submitted', 'append_compsep': 1, 'type_multibyte': 0}
 function! alti#init(define, ...)
   if has_key(s:, 'cmpwin')| return| end
   let firstmess = substitute(get(a:, 1, ''), "^\n", '', '')
@@ -448,9 +448,6 @@ function! alti#init(define, ...)
   let s:defines.len = len(s:defines.list)
   let define = s:defines.list[0]
   call extend(define, s:dfl_define, 'keep')
-  if !has_key(define, 'insertstr')
-    let define.insertstr = define.rm_arglead_oncomp ? 'alti#insertstr_posttab_annotation_rm_arglead' : 'alti#insertstr_posttab_annotation_norm_arglead'
-  end
   let s:regholder = s:new_regholder()
   let s:funcself = get(a:, 2, {})
   call map(copy(s:defines.list), 'call(get(v:val, "enter", "s:default_enter"), [], s:funcself)')
@@ -472,6 +469,7 @@ function! alti#init(define, ...)
   end
 endfunction
 
+"------------------
 function! alti#get_arginfo() "{{{
   if !has_key(s:, 'cmpwin')
     echoerr 'alti: when alti is not running, it is not possible to call alti#get_arginfo().'
@@ -482,30 +480,29 @@ function! alti#get_arginfo() "{{{
   return ret
 endfunction
 "}}}
+function! alti#on_insertstr_rm_arglead() "{{{
+  if !( has_key(s:, 'cmpwin') && get(s:cmpwin, 'on_comp') )
+    echoerr 'backdraft: この関数は補完実行中にのみ機能します。' | return
+  end
+  call s:prompt.rm_arglead()
+  let s:cmpwin.on_comp = 0
+endfunction
+"}}}
 
 "==================
-function! alti#insertstr_posttab_annotation_rm_arglead(arglead, selected_candidate) "{{{
+function! alti#insertstr_posttab_annotation(arglead, selected_candidate) "{{{
+  call alti#on_insertstr_rm_arglead()
   return substitute(a:selected_candidate, '\t.*$', '', '')
 endfunction
 "}}}
-function! alti#insertstr_posttab_annotation_norm_arglead(arglead, selected_candidate) "{{{
-  return substitute(substitute(a:selected_candidate, '\t.*$', '', ''), '^'.a:arglead, '', '')
-endfunction
-"}}}
-function! alti#insertstr_pretab_annotation_rm_arglead(arglead, selected_candidate) "{{{
+function! alti#insertstr_pretab_annotation(arglead, selected_candidate) "{{{
+  call alti#on_insertstr_rm_arglead()
   return substitute(a:selected_candidate, '^.*\t', '', '')
 endfunction
 "}}}
-function! alti#insertstr_pretab_annotation_norm_arglead(arglead, selected_candidate) "{{{
-  return substitute(substitute(a:selected_candidate, '^.*\t', '', ''), '^'.a:arglead, '', '')
-endfunction
-"}}}
-function! alti#insertstr_raw_rm_arglead(arglead, selected_candidate) "{{{
+function! alti#insertstr_raw(arglead, selected_candidate) "{{{
+  call alti#on_insertstr_rm_arglead()
   return a:selected_candidate
-endfunction
-"}}}
-function! alti#insertstr_raw_norm_arglead(arglead, selected_candidate) "{{{
-  return substitute(a:selected_candidate, '^'.a:arglead, '', '')
 endfunction
 "}}}
 
@@ -829,14 +826,10 @@ function! s:ToggleType(incdec) "{{{
   let s:defines.idx = idx >= s:defines.len ? 0 : idx<0 ? s:defines.len-1 : idx
   let define = s:defines.list[s:defines.idx]
   call extend(define, s:dfl_define, 'keep')
-  if !has_key(define, 'insertstr')
-    let define.insertstr = define.rm_arglead_oncomp ? 'alti#insertstr_posttab_annotation_rm_arglead' : 'alti#insertstr_posttab_annotation_norm_arglead'
-  end
   let &imdisable = define.type_multibyte ? 0 : 1
   let s:cmpwin.compfunc = define.comp
   let s:cmpwin.compsep = define.append_compsep ? ' ' : ''
   let s:cmpwin.insertstr = define.insertstr
-  let s:cmpwin.rm_arglead_oncomp = define.rm_arglead_oncomp
   let s:prompt.prtbasefunc = define.prompt
   let s:prompt.submittedfunc = define.submitted
   let s:prompt.canceledfunc = define.canceled

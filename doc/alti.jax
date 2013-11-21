@@ -208,10 +208,8 @@ alti#init({define}, [{firstmessage}, [{funcself}]])
 	insertstr (関数名) :		*alti-define-insertstr*
 		選択された候補で補完を実行するとき呼ばれ、補完を完成させる。
 		ArgLead と SelectedCandidate(選ばれた候補)を引数に取る。
-		後述の|alti-define-rm_arglead_oncomp|の値によってこの関数は挙
-		動を変更する必要がある。rm_arglead_oncomp が 0 の場合、通常次
-		のように SelectedCandidate の先頭から ArgLead を除いた値を返す
-		ようにする。 >
+		通常次のように SelectedCandidate の先頭から ArgLead を除いた値
+		を返すようにする。 >
 	  function! alti#insertstr_raw_norm_arglead(ArgLead, SelectedCandidate)
 	    return substitute(a:SelectedCandidate, '^'.a:ArgLead, '', '')
 	  endfunction
@@ -219,19 +217,19 @@ alti#init({define}, [{firstmessage}, [{funcself}]])
 		つまり、"arg"まで入力されている状態で"argument"という候補で補
 		完を実行した場合、実際に入力される文字列は"ument"でなければな
 		らないのでSelectedCandidate("argument")からArgLead("arg")を除
-		去するようにする。
-		逆に rm_arglead_oncomp が 非0のときには、この関数の返値がその
-		まま入力になるのでArgLeadの除去は不要である。 >
+		去するようにする。ただし、このinserstr関数内でのみ機能する関数
+		|alti#on_insertstr_rm_arglead()|を呼んでいるのなら、
+		ArgLeadを除く操作をせず、返値がそのまま挿入される補完の文字列
+		となる。 >
 	  function! alti#insertstr_raw_rm_arglead(ArgLead, SelectedCandidate)
+	    call alti#on_insertstr_rm_arglead()
 	    return a:SelectedCandidate
 	  endfunction
-<		既定値は|alti-define-rm_arglead_oncomp|が
-		0 のときは "alti#insertstr_posttab_annotation_norm_arglead"、
-		非0 のときは "alti#insertstr_posttab_annotation_rm_arglead"
-		である。これは、タブ文字以降を削除するようにしている。これによ
-		り、候補の後にタブ文字を挟んで注釈を付けられるようにすることを
-		意図している。標準でinsertstr関数として利用できる関数が複数用
-		意されている。詳しくは|alti-insertstr-functions|を参照。
+<		既定値は "alti#insertstr_posttab_annotation" である。これは、
+		タブ文字以降を削除する関数である。これにより、候補の後にタブ文
+		字を挟んで注釈を付けられるようにすることを意図している。標準で
+		insertstr関数として利用できる関数が複数用意されている。
+		詳しくは|alti-insertstr-functions|を参照。
 	submitted (関数名) :		*alti-define-submitted*
 		Submitされた後に呼ばれる関数。引数を2つ取る。一つ目は入力され
 		た文字列。二つ目は終了前の状態を収めた辞書。その要素は
@@ -249,11 +247,6 @@ alti#init({define}, [{firstmessage}, [{funcself}]])
 		ルがコマンドラインの左下に常に表示されるようになる。">>> "のよ
 		うに、プロンプト文字を長めに作って入力文字列にかからないように
 		すれば少しは気にならなくなるかも知れない。既定値は0である。
-	rm_arglead_oncomp (数値) :	*alti-define-rm_arglead_oncomp*
-		非0なら、|alti-define-insertstr|関数実行前に、入力文字列から
-		ArgLeadを削除する。これにより、insertstr関数内でArgLeadを削除
-		する処理をしなくても良くなる。前方一致以外の補完が実現できるよ
-		うになる。既定値は1である。
 
 	関数名に指定した関数にはdict属性を指定しても良い。そうした場合、"self"
 	変数が利用できる。この"self"変数は初期値は空の辞書で、他のaltiの関数内
@@ -282,45 +275,30 @@ alti#get_arginfo()				*alti#get_arginfo()*
 	args       : 入力された文字列を非エスケープ空白で分割したリスト。
 
 
+alti#on_insertstr_rm_arglead()		*alti#on_insertstr_rm_arglead()*
+	insertstr関数|alti-define-insertstr|の中でしか呼ぶことが許されていない
+	。現在入力されている文字列の中から ArgLead を除去する。これにより、
+	insertstr関数が返す文字列がそのまま補完で挿入される文字列として扱われ
+	るようになる。
+
+
 --------------------------------------
 						*alti-insertstr-functions*
 以下の関数の関数名は|alti-define-insertstr|の値として利用することが出来る。
 
-			*alti#insertstr_posttab_annotation_rm_arglead()*
-alti#insertstr_posttab_annotation_rm_arglead({ArgLead}, {SelectedCandidate})
-	|alti-define-rm_arglead_oncomp|が 非0 のときの|alti-define-insertstr|
-	における標準関数である。
+					*alti#insertstr_posttab_annotation()*
+alti#insertstr_posttab_annotation({ArgLead}, {SelectedCandidate})
+	|alti-define-insertstr|の既定関数である。
 	タブ文字以降を無視するので、タブ文字以降を候補の注釈とすることが可能。
 
 
-			*alti#insertstr_posttab_annotation_norm_arglead()*
-alti#insertstr_posttab_annotation_norm_arglead({ArgLead}, {SelectedCandidate})
-	|alti-define-rm_arglead_oncomp|が 0 のときの|alti-define-insertstr|
-	における標準関数である。
-	タブ文字以降を無視するので、タブ文字以降を候補の注釈とすることが可能。
-
-
-			*alti#insertstr_pretab_annotation_rm_arglead()*
-alti#insertstr_pretab_annotation_rm_arglead({ArgLead}, {SelectedCandidate})
-	|alti-define-rm_arglead_oncomp|が 非0 のとき用の関数。
+					*alti#insertstr_pretab_annotation()*
+alti#insertstr_pretab_annotation({ArgLead}, {SelectedCandidate})
 	タブ文字以前を無視するので、タブ文字以前を候補の注釈とすることが可能。
 
 
-			*alti#insertstr_pretab_annotation_norm_arglead()*
-alti#insertstr_pretab_annotation_norm_arglead({ArgLead}, {SelectedCandidate})
-	|alti-define-rm_arglead_oncomp|が 0 のとき用の関数。
-	タブ文字以前を無視するので、タブ文字以前を候補の注釈とすることが可能。
-
-
-					*alti#insertstr_raw_rm_arglead()*
-alti#insertstr_raw_rm_arglead({ArgLead}, {SelectedCandidate})
-	|alti-define-rm_arglead_oncomp|が 非0 のとき用の関数。
-	候補をそのまま補完として挿入する。
-
-
-					*alti#insertstr_raw_norm_arglead()*
-alti#insertstr_raw_norm_arglead({ArgLead}, {SelectedCandidate})
-	|alti-define-rm_arglead_oncomp|が 0 のとき用の関数。
+						*alti#insertstr_raw()*
+alti#insertstr_raw({ArgLead}, {SelectedCandidate})
 	候補をそのまま補完として挿入する。
 
 
