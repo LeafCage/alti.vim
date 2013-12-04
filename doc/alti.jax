@@ -55,8 +55,8 @@ https://github.com/LeafCage/alti.vim
 1. altiの定義を作る。(altiはライブラリだからそのままでは動かない。)
 2. alti#init()に定義を渡す。
 3. altiが動く。
-4. <C-j><C-k>で候補を選択、通常入力で絞込み、<C-f>で次の候補ページへ、
-   <Tab>(or <C-y> or <C-n>※)で選択されている候補を挿入。
+4. <C-j><C-k>で候補を選択、通常入力で絞込み、<C-v>で次の候補ページへ、
+   <Tab>(or <C-n>※)で選択されている候補を挿入。
 5. こうしてコマンドを組み立てたら、<CR>で実行。
 6. コマンドを受け取った関数が何かする。やった！
 
@@ -128,17 +128,21 @@ g:alti_prompt_mappings				*g:alti_prompt_mappings*
  \ 'PrtCurEnd()': ['<C-e>'],			入力欄の末尾へ
  \ 'PrtCurLeft()': ['<C-h>', '<Left>'],		入力欄カーソルを左へ
  \ 'PrtCurRight()': ['<C-l>', '<Right>'],	入力欄カーソルを右へ
- \ 'PrtPageNext()': ['<C-f>', '<PageDown>', '<kPageDown>'],
+ \ 'PrtPage(1)': ['<C-v>', '<PageDown>', '<kPageDown>']
 			候補が多すぎて窓に入らないとき、次のページへとめくる
- \ 'PrtPagePrevious()': ['<C-b>', '<PageUp>', '<kPageUp>'],
+ \ 'PrtPage(-1)': ['<C-t>', '<PageUp>', '<kPageUp>']
 			候補が多すぎて窓に入らないとき、前のページへとめくる
  \ 'PrtSelectMove("j")': ['<C-j>', '<Down>'],		候補窓の選択を1つ下へ
  \ 'PrtSelectMove("k")': ['<C-k>', '<Up>'],		候補窓の選択を1つ上へ
  \ 'PrtSelectMove("t")': ['<Home>', '<kHome>'],		候補窓の先頭へ
  \ 'PrtSelectMove("b")': ['<End>', '<kEnd>'],		候補窓の末尾へ
- \ 'PrtSelectInsert()': ['<Tab>', '<C-y>'],		選択候補を入力欄へ挿入
+ \ 'PrtSelectInsert()': ['<Tab>'],			選択候補を入力欄へ挿入
  \ 'PrtExit()': ['<Esc>', '<C-c>', '<C-g>'],		キャンセルしてalti終了
  \ 'PrtSubmit()': ['<CR>', '<2-LeftMouse>'],		確定してalti終了
+ \ 'ToggleType(1)': ['<C-f>', '<C-_>', '<C-Down>']
+		複数のタイプを持つ定義のタイプを次のタイプに切り替える
+ \ 'ToggleType(-1)': ['<C-b>', '<C-]>', '<C-^>', '<C-Up>']
+		複数のタイプを持つ定義のタイプを前のタイプに切り替える
 
  \ 'Nop()':	何もしない。キーを潰すためだけに存在する。ここに入れられたキー
 		が他の定義とバッティングしたとき、他の定義の方が優先される。
@@ -313,6 +317,9 @@ TODO						*alti-todo*
 
 - ハイライトをもう少しどうにかしたい。
 - ステータスラインに情報を表示したい
+- エントリの削除やソートというアクションの実装
+- デフォルトキーマッピングの見直し
+-- <C-x><C-z>ソート (is_sortableオプションを付ける)
 
 
 ==============================================================================

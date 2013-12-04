@@ -26,17 +26,17 @@ let s:prtmaps['PrtCurStart()'] = ['<C-a>']
 let s:prtmaps['PrtCurEnd()'] = ['<C-e>']
 let s:prtmaps['PrtCurLeft()'] = ['<C-h>', '<Left>']
 let s:prtmaps['PrtCurRight()'] = ['<C-l>', '<Right>']
-let s:prtmaps['PrtPageNext()'] = ['<C-f>', '<PageDown>', '<kPageDown>']
-let s:prtmaps['PrtPagePrevious()'] = ['<C-b>', '<PageUp>', '<kPageUp>']
+let s:prtmaps['PrtPage(1)'] = ['<C-v>', '<PageDown>', '<kPageDown>']
+let s:prtmaps['PrtPage(-1)'] = ['<C-t>', '<PageUp>', '<kPageUp>']
 let s:prtmaps['PrtSelectMove("j")'] = ['<C-j>', '<Down>']
 let s:prtmaps['PrtSelectMove("k")'] = ['<C-k>', '<Up>']
 let s:prtmaps['PrtSelectMove("t")'] = ['<Home>', '<kHome>']
 let s:prtmaps['PrtSelectMove("b")'] = ['<End>', '<kEnd>']
-let s:prtmaps['PrtSelectInsert()'] = ['<Tab>', '<C-y>']
+let s:prtmaps['PrtSelectInsert()'] = ['<Tab>']
 let s:prtmaps['PrtExit()'] = ['<Esc>', '<C-c>', '<C-g>']
 let s:prtmaps['PrtSubmit()'] = ['<CR>']
-let s:prtmaps['ToggleType(1)'] = ['<C-o>', '<C-_>', '<C-Down>']
-let s:prtmaps['ToggleType(-1)'] = ['<C-z>', '<C-]>', '<C-^>', '<C-Up>']
+let s:prtmaps['ToggleType(1)'] = ['<C-f>', '<C-_>', '<C-Down>']
+let s:prtmaps['ToggleType(-1)'] = ['<C-b>', '<C-]>', '<C-^>', '<C-Up>']
 let s:prtmaps['Nop()'] = ['<BS>', '<C-]>', '<Del>', '<C-d>', '<C-w>', '<C-u>', '<C-r>', '<C-n>', '<C-p>', '<C-a>', '<C-e>', '<C-h>', '<Left>', '<C-l>', '<Right>', '<C-i>', '<C-o>', '<PageDown>', '<kPageDown>', '<PageUp>', '<kPageUp>', '<C-j>', '<Down>', '<C-k>', '<Up>', '<Home>', '<kHome>', '<End>', '<kEnd>', '<C-v>', '<C-y>', '<Esc>', '<C-c>', '<C-g>', '<CR>', '<C-Tab>', '<S-Tab>', '<C-CR>', '<C-x>', '<C-s>', '<C-t>', '<C-z>', '<C-\>', '<C-^>', '<C-Up>', '<C-Down>', '<C-Left>', '<C-Right>', '<S-Up>', '<S-Down>', '<S-Left>', '<S-Right>', '<Insert>', '<2-LeftMouse>', '<MiddleMouse>', '<RightMouse>',]
 
 call extend(s:prtmaps, get(g:, 'alti_prompt_mappings', {}))
@@ -790,13 +790,8 @@ function! s:PrtCurRight() "{{{
   call s:prompt.echo()
 endfunction
 "}}}
-function! s:PrtPageNext() "{{{
-  call s:cmpwin.turn_page(1)
-  call s:cmpwin.buildview()
-endfunction
-"}}}
-function! s:PrtPagePrevious() "{{{
-  call s:cmpwin.turn_page(-1)
+function! s:PrtPage(incdec) "{{{
+  call s:cmpwin.turn_page(a:incdec)
   call s:cmpwin.buildview()
 endfunction
 "}}}
