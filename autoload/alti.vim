@@ -439,7 +439,7 @@ endfunction
 
 "=============================================================================
 "Main
-let s:dfl_define = {'name': '', 'sname': '', 'default_text': '', 'static_text': '', 'prompt': 's:default_prompt', 'prompt_hl': 'Comment', 'comp': 's:default_comp', 'insertstr': 'alti#insertstr_posttab_annotation', 'canceled': 's:default_canceled', 'submitted': 's:default_submitted', 'append_compsep': 1, 'type_multibyte': 0}
+let s:dfl_define = {'name': '', 'sname': '', 'default_text': '', 'static_text': '', 'prompt': 's:default_prompt', 'prompt_hl': 'Comment', 'comp': 's:default_comp', 'insertstr': 'alti#insertstr_posttab_annotation', 'canceled': 's:default_canceled', 'submitted': 's:default_submitted', 'append_compsep': 1, 'type_multibyte': 0, 'self': {}}
 function! alti#init(define, ...)
   if has_key(s:, 'cmpwin')| return| end
   let firstmess = substitute(get(a:, 1, ''), "^\n", '', '')
@@ -449,7 +449,8 @@ function! alti#init(define, ...)
   let define = s:defines.list[0]
   call extend(define, s:dfl_define, 'keep')
   let s:regholder = s:new_regholder()
-  let s:funcself = get(a:, 2, {})
+  let s:funcself = a:define.self
+  call extend(s:funcself, get(a:, 2, {}))
   call map(copy(s:defines.list), 'call(get(v:val, "enter", "s:default_enter"), [], s:funcself)')
   let s:glboptholder = s:new_glboptholder(define)
   let s:cmpwin = s:new_cmpwin(define)
