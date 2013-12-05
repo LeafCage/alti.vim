@@ -439,23 +439,26 @@ endfunction
 
 "=============================================================================
 "Main
-let s:dfl_define = {'name': '', 'sname': '', 'default_text': '', 'static_text': '', 'prompt': 's:default_prompt', 'prompt_hl': 'Comment', 'comp': 's:default_comp', 'insertstr': 'alti#insertstr_posttab_annotation', 'canceled': 's:default_canceled', 'submitted': 's:default_submitted', 'append_compsep': 1, 'type_multibyte': 0, 'self': {}}
+let s:dfl_define = {'name': '', 'sname': '', 'default_text': '', 'static_text': '', 'prompt': 's:default_prompt', 'prompt_hl': 'Comment', 'comp': 's:default_comp', 'insertstr': 'alti#insertstr_posttab_annotation', 'canceled': 's:default_canceled', 'submitted': 's:default_submitted', 'append_compsep': 1, 'type_multibyte': 0,}
 function! alti#init(define, ...)
   if has_key(s:, 'cmpwin')| return| end
   let firstmess = substitute(get(a:, 1, ''), "^\n", '', '')
   let s:defines = {'idx': 0}
   let s:defines.list = type(a:define)==type([]) ? a:define==[] ? [{}] : a:define : [a:define]
   let s:defines.len = len(s:defines.list)
-  let define = s:defines.list[0]
-  call extend(define, s:dfl_define, 'keep')
+  let Define = s:defines.list[0]
+  call extend(Define, s:dfl_define, 'keep')
   let s:regholder = s:new_regholder()
-  let s:funcself = a:define.self
+  let s:funcself = {}
+  for def in s:defines.list
+    call extend(s:funcself, get(def, 'self', {}))
+  endfor
   call extend(s:funcself, get(a:, 2, {}))
   call map(copy(s:defines.list), 'call(get(v:val, "enter", "s:default_enter"), [], s:funcself)')
-  let s:glboptholder = s:new_glboptholder(define)
-  let s:cmpwin = s:new_cmpwin(define)
-  let s:prompt = s:new_prompt(define, firstmess)
-  let s:argleadsholder = s:new_argleadsholder(define)
+  let s:glboptholder = s:new_glboptholder(Define)
+  let s:cmpwin = s:new_cmpwin(Define)
+  let s:prompt = s:new_prompt(Define, firstmess)
+  let s:argleadsholder = s:new_argleadsholder(Define)
   call s:_mapping_input()
   call s:_mapping_term_arrowkeys()
   call s:_mapping_prtmaps()
@@ -463,9 +466,9 @@ function! alti#init(define, ...)
   call s:cmpwin.buildview()
   call s:prompt.echo()
   if g:alti_enable_statusline
-    let s:stlmgr = s:new_stlmgr(define)
+    let s:stlmgr = s:new_stlmgr(Define)
   end
-  if define.type_multibyte
+  if Define.type_multibyte
     call s:_keyloop()
   end
 endfunction
