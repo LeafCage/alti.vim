@@ -214,6 +214,7 @@ function! s:_argleadsholder._update_cursoridx() "{{{
 endfunction
 "}}}
 "==================
+let s:TYPE_DIC = type({})
 let s:_cmpwin = {}
 function! s:new_cmpwin(define) "{{{
   let restcmds = {'winrestcmd': winrestcmd(), 'lines': &lines, 'winnr': winnr('$')}
@@ -288,6 +289,7 @@ endfunction
 "}}}
 function! s:_cmpwin._get_selected() "{{{
   let candidates = self._get_buildelm()[0]
+  let candidates = type(get(candidates, 0))==s:TYPE_DIC ? map(candidates, 'v:val.word') : candidates
   let self.selected_row = line('.')
   return get(candidates, self.selected_row-1, '')
 endfunction
@@ -300,6 +302,7 @@ endfunction
 function! s:_cmpwin.buildview() "{{{
   setl ma
   let [candidates, height]= self._get_buildelm()
+  let candidates = type(get(candidates, 0))==s:TYPE_DIC ? map(candidates, 'get(v:val, "abbr", v:val.word)') : candidates
   sil! exe '%delete _ | resize' height
   call map(candidates, '"> ". v:val')
   call setline(1, candidates)
