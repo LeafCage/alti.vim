@@ -33,7 +33,8 @@ let s:prtmaps['PrtSelectMove("k")'] = ['<C-k>', '<Up>']
 let s:prtmaps['PrtSelectMove("t")'] = ['<Home>', '<kHome>']
 let s:prtmaps['PrtSelectMove("b")'] = ['<End>', '<kEnd>']
 let s:prtmaps['PrtSelectInsert()'] = ['<Tab>']
-let s:prtmaps['PrtExit()'] = ['<Esc>', '<C-c>', '<C-g>']
+let s:prtmaps['PrtShowDetail()'] = ['<C-g>']
+let s:prtmaps['PrtExit()'] = ['<Esc>', '<C-c>']
 let s:prtmaps['PrtSubmit()'] = ['<CR>']
 let s:prtmaps['ToggleType(1)'] = ['<C-f>', '<C-_>', '<C-Down>']
 let s:prtmaps['ToggleType(-1)'] = ['<C-b>', '<C-]>', '<C-^>', '<C-Up>']
@@ -292,6 +293,15 @@ function! s:_cmpwin._get_selected() "{{{
   let candidates = type(get(candidates, 0))==s:TYPE_DIC ? map(candidates, 'v:val.word') : candidates
   let self.selected_row = line('.')
   return get(candidates, self.selected_row-1, '')
+endfunction
+"}}}
+function! s:_cmpwin.get_selected_detail() "{{{
+  let candidates = self._get_buildelm()[0]
+  let selected = get(candidates, line('.')-1, '')
+  if type(selected)!=s:TYPE_DIC
+    return ''
+  end
+  return get(selected, 'detail', '')
 endfunction
 "}}}
 function! s:_cmpwin.turn_page(incdec) "{{{
@@ -808,6 +818,17 @@ endfunction
 function! s:PrtSelectInsert() "{{{
   call s:histholder.reset()
   call s:cmpwin.select_insert()
+  call s:cmpwin.buildview()
+  call s:prompt.echo()
+endfunction
+"}}}
+function! s:PrtShowDetail() "{{{
+  let detail = s:cmpwin.get_selected_detail()
+  if detail==''
+    return
+  end
+  echo detail
+  call getchar()
   call s:cmpwin.buildview()
   call s:prompt.echo()
 endfunction
