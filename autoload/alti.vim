@@ -32,8 +32,8 @@ let s:prtmaps['PrtSelectMove("j")'] = ['<C-j>', '<Down>']
 let s:prtmaps['PrtSelectMove("k")'] = ['<C-k>', '<Up>']
 let s:prtmaps['PrtSelectMove("t")'] = ['<Home>', '<kHome>']
 let s:prtmaps['PrtSelectMove("b")'] = ['<End>', '<kEnd>']
-let s:prtmaps['PrtSelectInsert()'] = ['<Tab>']
-let s:prtmaps['PrtShowDetail()'] = ['<C-g>']
+let s:prtmaps['PrtInsertSelection()'] = ['<Tab>']
+let s:prtmaps['PrtDetailSelection()'] = ['<C-g>']
 let s:prtmaps['PrtExit()'] = ['<Esc>', '<C-c>']
 let s:prtmaps['PrtSubmit()'] = ['<CR>']
 let s:prtmaps['ToggleType(1)'] = ['<C-f>', '<C-_>', '<C-Down>']
@@ -271,7 +271,7 @@ function! s:_cmpwin.select_move(direction) "{{{
   let self.selected_row = line('.')
 endfunction
 "}}}
-function! s:_cmpwin.select_insert() "{{{
+function! s:_cmpwin.insert_selection() "{{{
   let selected = self._get_selected()
   if selected==''
     return
@@ -767,7 +767,7 @@ endfunction
 "}}}
 function! s:PrtSmartHistory(incdec) "{{{
   if s:histholder.idx == 0
-    call s:PrtSelectInsert()
+    call s:PrtInsertSelection()
   else
     call s:PrtHistory(a:incdec)
   end
@@ -818,14 +818,14 @@ function! s:PrtSelectMove(direction) "{{{
   call s:cmpwin.select_move(a:direction)
 endfunction
 "}}}
-function! s:PrtSelectInsert() "{{{
+function! s:PrtInsertSelection() "{{{
   call s:histholder.reset()
-  call s:cmpwin.select_insert()
+  call s:cmpwin.insert_selection()
   call s:cmpwin.buildview()
   call s:prompt.echo()
 endfunction
 "}}}
-function! s:PrtShowDetail() "{{{
+function! s:PrtDetailSelection() "{{{
   let detail = s:cmpwin.get_selected_detail()
   if detail==''
     return
