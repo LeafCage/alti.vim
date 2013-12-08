@@ -34,6 +34,8 @@ let s:prtmaps['PrtSelectMove("t")'] = ['<Home>', '<kHome>']
 let s:prtmaps['PrtSelectMove("b")'] = ['<End>', '<kEnd>']
 let s:prtmaps['PrtInsertSelection()'] = ['<Tab>']
 let s:prtmaps['PrtDetailSelection()'] = ['<C-g>']
+let s:prtmaps['PrtActSelection("z")'] = ['<C-z>', '<C-s>']
+let s:prtmaps['PrtActSelection("x")'] = ['<C-x>']
 let s:prtmaps['PrtExit()'] = ['<Esc>', '<C-c>']
 let s:prtmaps['PrtSubmit()'] = ['<CR>']
 let s:prtmaps['ToggleType(1)'] = ['<C-f>', '<C-_>', '<C-Down>']
@@ -186,12 +188,13 @@ endfunction
 "==================
 let s:_argleadsholder = {}
 function! s:new_argleadsholder(define) "{{{
-  let _ = {'arglead': '', 'ordinal': 1, 'save_precursor': '', 'cursoridx': strlen(a:define.static_text)+1}
+  let _ = {'arglead': '', 'ordinal': 1, 'save_precursor': '', 'cursoridx': strlen(a:define.static_text)+1, 'action': []}
   call extend(_, s:_argleadsholder)
   return _
 endfunction
 "}}}
-function! s:_argleadsholder.get_funcargs() "{{{
+function! s:_argleadsholder.get_funcargs(...) "{{{
+  let self.action = get(a:, 1, [])
   call self._update_cursoridx()
   call self.update_arglead()
   return [self.arglead, s:prompt.get_inputline(), self.cursoridx]
@@ -237,8 +240,8 @@ function! s:new_cmpwin(define) "{{{
   return _
 endfunction
 "}}}
-function! s:_cmpwin.update_candidates() "{{{
-  let self.candidates = call(self.compfunc, s:argleadsholder.get_funcargs(), s:funcself)
+function! s:_cmpwin.update_candidates(...) "{{{
+  let self.candidates = call(self.compfunc, s:argleadsholder.get_funcargs(get(a:, 1, [])), s:funcself)
 endfunction
 "}}}
 function! s:_cmpwin._get_viewcandidates(firstidx, lastidx) "{{{
@@ -500,7 +503,7 @@ function! alti#get_arginfo() "{{{
     echoerr 'alti: when alti is not running, it is not possible to call alti#get_arginfo().'
     return {}
   end
-  let ret = {'precursor': s:prompt.input[0], 'postcursor': s:prompt.input[1], 'inputline': s:prompt.inputline, 'cursoridx': s:argleadsholder.cursoridx, 'arglead': s:argleadsholder.arglead, 'ordinal': s:argleadsholder.ordinal}
+  let ret = {'precursor': s:prompt.input[0], 'postcursor': s:prompt.input[1], 'inputline': s:prompt.inputline, 'cursoridx': s:argleadsholder.cursoridx, 'arglead': s:argleadsholder.arglead, 'ordinal': s:argleadsholder.ordinal, 'action': s:argleadsholder.action}
   let ret.args = split(s:prompt.inputline, '\%(\\\@<!\s\)\+')
   return ret
 endfunction
@@ -842,6 +845,12 @@ function! s:PrtDetailSelection() "{{{
   call getchar()
   call s:cmpwin.buildview()
   call s:prompt.echo()
+endfunction
+"}}}
+function! s:PrtActSelection(action) "{{{
+  let idx = s:cmpwin.get_selected_idx()
+  call s:cmpwin.update_candidates([a:action, idx])
+  call s:cmpwin.buildview()
 endfunction
 "}}}
 function! s:PrtExit() "{{{
