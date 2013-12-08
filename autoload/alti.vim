@@ -27,7 +27,7 @@ let s:prtmaps['PrtCurEnd()'] = ['<C-e>']
 let s:prtmaps['PrtCurLeft()'] = ['<C-h>', '<Left>']
 let s:prtmaps['PrtCurRight()'] = ['<C-l>', '<Right>']
 let s:prtmaps['PrtPage(1)'] = ['<C-v>', '<PageDown>', '<kPageDown>']
-let s:prtmaps['PrtPage(-1)'] = ['<C-t>', '<PageUp>', '<kPageUp>']
+let s:prtmaps['PrtPage(-1)'] = ['<C-y>', '<PageUp>', '<kPageUp>']
 let s:prtmaps['PrtSelectMove("j")'] = ['<C-j>', '<Down>']
 let s:prtmaps['PrtSelectMove("k")'] = ['<C-k>', '<Up>']
 let s:prtmaps['PrtSelectMove("t")'] = ['<Home>', '<kHome>']
@@ -684,6 +684,9 @@ function! s:_exit_process(funcname) "{{{
   call s:cmpwin.close()
   wincmd p
   call call(canceledfunc, [inputline, state], get(s:, 'funcself', {}))
+  let save_imd = &imd
+  set imdisable
+  let &imd = save_imd
   if !has_key(s:, 'cmpwin')
     unlet! s:funcself
   end
