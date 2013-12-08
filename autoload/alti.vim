@@ -294,10 +294,8 @@ function! s:_cmpwin.insert_selection() "{{{
 endfunction
 "}}}
 function! s:_cmpwin._get_selected() "{{{
-  let candidates = self._get_buildelm()[0]
-  let candidates = type(get(candidates, 0))==s:TYPE_DIC ? map(candidates, 'v:val.word') : candidates
-  let self.selected_row = line('.')
-  return get(candidates, self.selected_row-1, '')
+  let selected = get(self.candidates, self.get_selected_idx(), '')
+  return type(selected)==s:TYPE_DIC ? selected.word : selected
 endfunction
 "}}}
 function! s:_cmpwin.get_selected_idx() "{{{
@@ -307,8 +305,7 @@ function! s:_cmpwin.get_selected_idx() "{{{
 endfunction
 "}}}
 function! s:_cmpwin.get_selected_detail() "{{{
-  let candidates = self._get_buildelm()[0]
-  let selected = get(candidates, line('.')-1, '')
+  let selected = get(self.candidates, self.get_selected_idx(), '')
   if type(selected)!=s:TYPE_DIC
     return ''
   end
