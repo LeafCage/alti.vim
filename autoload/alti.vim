@@ -27,7 +27,7 @@ let s:prtmaps['PrtCurEnd()'] = ['<C-e>']
 let s:prtmaps['PrtCurLeft()'] = ['<C-h>', '<Left>']
 let s:prtmaps['PrtCurRight()'] = ['<C-l>', '<Right>']
 let s:prtmaps['PrtPage(1)'] = ['<C-v>', '<PageDown>', '<kPageDown>']
-let s:prtmaps['PrtPage(-1)'] = ['<C-y>', '<PageUp>', '<kPageUp>']
+let s:prtmaps['PrtPage(-1)'] = ['<C-o>', '<PageUp>', '<kPageUp>']
 let s:prtmaps['PrtSelectMove("j")'] = ['<C-j>', '<Down>']
 let s:prtmaps['PrtSelectMove("k")'] = ['<C-k>', '<Up>']
 let s:prtmaps['PrtSelectMove("t")'] = ['<Home>', '<kHome>']
@@ -36,6 +36,7 @@ let s:prtmaps['PrtInsertSelection()'] = ['<Tab>']
 let s:prtmaps['PrtDetailSelection()'] = ['<C-g>']
 let s:prtmaps['PrtActSelection("z")'] = ['<C-z>', '<C-s>']
 let s:prtmaps['PrtActSelection("x")'] = ['<C-x>']
+let s:prtmaps['PrtActSelection("t")'] = ['<C-t>']
 let s:prtmaps['PrtExit()'] = ['<Esc>', '<C-c>']
 let s:prtmaps['PrtSubmit()'] = ['<CR>']
 let s:prtmaps['ToggleType(1)'] = ['<C-f>', '<C-_>', '<C-Down>']
@@ -812,7 +813,7 @@ function! s:PrtCurLeft() "{{{
 endfunction
 "}}}
 function! s:PrtCurRight() "{{{
-  if s:prompt.cursor_right()
+  if !s:prompt.cursor_right()
     return
   end
   call s:cmpwin.update_candidates()
