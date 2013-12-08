@@ -246,11 +246,16 @@ function! s:_cmpwin._get_viewcandidates(firstidx, lastidx) "{{{
   return self.cw.order=='btt' ? reverse(candidates) : candidates
 endfunction
 "}}}
-function! s:_cmpwin._get_buildelm() "{{{
+function! s:_cmpwin._set_page() "{{{
   let self.candidates_len = len(self.candidates)
   let height = min([max([self.cw.min, self.candidates_len]), self.cw.max, &lines])
   let self.lastpage = (self.candidates_len-1) / height + 1
   let self.page = self.page > self.lastpage ? self.lastpage : self.page
+  return height
+endfunction
+"}}}
+function! s:_cmpwin._get_buildelm() "{{{
+  let height = self._set_page()
   let maxlenof_height = height*(self.page-1)
   let candidates = self._get_viewcandidates(maxlenof_height, height*self.page-1)
   if self.page == self.lastpage
@@ -293,6 +298,12 @@ function! s:_cmpwin._get_selected() "{{{
   let candidates = type(get(candidates, 0))==s:TYPE_DIC ? map(candidates, 'v:val.word') : candidates
   let self.selected_row = line('.')
   return get(candidates, self.selected_row-1, '')
+endfunction
+"}}}
+function! s:_cmpwin.get_selected_idx() "{{{
+  let height = self._set_page()
+  let self.selected_row = line('.')
+  return height*(self.page-1) + self.selected_row-1
 endfunction
 "}}}
 function! s:_cmpwin.get_selected_detail() "{{{
