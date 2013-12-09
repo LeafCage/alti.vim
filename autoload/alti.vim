@@ -19,8 +19,8 @@ let s:prtmaps['PrtDelete()'] = ['<Del>', '<C-d>']
 let s:prtmaps['PrtDeleteWord()'] = ['<C-w>']
 let s:prtmaps['PrtClear()'] = ['<C-u>']
 let s:prtmaps['PrtInsertReg()'] = ['<C-r>']
-let s:prtmaps['PrtHistory(-1)'] = []
-let s:prtmaps['PrtSmartHistory(-1)'] = ['<C-n>']
+let s:prtmaps['PrtHistory(-1)'] = ['<C-n>']
+let s:prtmaps['PrtSmartHistory(-1)'] = []
 let s:prtmaps['PrtHistory(1)'] = ['<C-p>']
 let s:prtmaps['PrtCurStart()'] = ['<C-a>']
 let s:prtmaps['PrtCurEnd()'] = ['<C-e>']
@@ -692,10 +692,10 @@ function! s:_exit_process(funcname) "{{{
   call s:argleadsholder._update_cursoridx()
   call s:argleadsholder.update_arglead()
   let state = extend(alti#get_arginfo(), {'lastselected': s:cmpwin._get_selected()})
-  let [canceledfunc, inputline] = s:prompt.get_exitfunc_elms(a:funcname)
+  let [CanceledFunc, inputline] = s:prompt.get_exitfunc_elms(a:funcname)
   call s:cmpwin.close()
   wincmd p
-  call call(canceledfunc, [inputline, state], get(s:, 'funcself', {}))
+  call call(CanceledFunc, [inputline, state], get(s:, 'funcself', {}))
   let save_imd = &imd
   set imdisable
   let &imd = save_imd
