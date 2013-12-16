@@ -4,7 +4,7 @@ scriptencoding utf-8
 "=============================================================================
 let g:alti_max_history = get(g:, 'alti_max_history', exists('+history')? &hi: 20)
 let g:alti_cache_dir = get(g:, 'alti_cache_dir', '~/.cache/alti')
-let g:alti_enable_statusline = get(g:, 'enable_statusline', 0)
+let g:alti_enable_statusline = get(g:, 'enable_statusline', 1)
 "======================================
 aug AltI
   autocmd!
@@ -161,29 +161,32 @@ endfunction
 "==================
 let s:_stlmgr = {}
 function! s:new_stlmgr(define) "{{{
-  hi link AltIMode1 Character
-  hi link AltIMode2 LineNr
-  let _ = {'crrtype': '%#AltIMode1# '.(a:define.name=='' ? ' alti'.(s:defines.idx+1).' ' : a:define.name).' %*'}
-  let nextidx = s:defines.idx+1 >=s:defines.len ? 0 : s:defines.idx+1
+  let _ = {'crrtype': '<'.(a:define.name=='' ? 'Alti'.(s:defines.idx+1) : a:define.name).'>'}
   let previdx = s:defines.idx-1 <0 ? s:defines.len-1 : s:defines.idx-1
-  let _.typenames = s:defines.len==1 ? ' {'._.crrtype.'} ' :
-    \ s:defines.len==2 ? '{'._.crrtype.'}='.s:_sidetypename(nextidx) :
-    \ s:_sidetypename(previdx).'={'._.crrtype.'}='.s:_sidetypename(nextidx)
-  "let candiescount = 
-  "let page = 
-  let &l:stl = _.typenames
+  let nextidx = s:defines.idx+1 >=s:defines.len ? 0 : s:defines.idx+1
+  let _.prevtype = s:defines.len<2 ? '' : get(s:defines.list[previdx], 'name', 'Alti'.previdx+1)
+  let _.nexttype = s:defines.len<3 ? '' : get(s:defines.list[nextidx], 'name', 'Alti'.nextidx+1)
+  let _.pat = '%%#StatusLineNC#%12.12s  %%#StatusLine#%s  %%#StatusLineNC#%-12.12s%%*%%=(%d item%s) (page: %d/%d)   AltI%%<'
+  let &l:stl = printf(_.pat, _.prevtype, _.crrtype, _.nexttype, 0, '', 1, 1)
   call extend(_, s:_stlmgr, 'keep')
   return _
 endfunction
 "}}}
-function! s:_stlmgr.on_toggletype() "{{{
-  let self.crrtype = '%#AltIMode1# '.(s:defines.list[s:defines.idx].name=='' ? ' alti'.(s:defines.idx+1).' ' : s:defines.list[s:defines.idx].name).' %*'
-  let nextidx = s:defines.idx+1 >=s:defines.len ? 0 : s:defines.idx+1
-  let previdx = s:defines.idx-1 <0 ? s:defines.len-1 : s:defines.idx-1
-  let self.typenames = s:defines.len==1 ? ' {'.self.crrtype.'} ' :
-    \ s:defines.len==2 ? '{'.self.crrtype.'}='.s:_sidetypename(nextidx) :
-    \ s:_sidetypename(previdx).'={'.self.crrtype.'}='.s:_sidetypename(nextidx)
-  let &l:stl = self.typenames
+function! s:_stlmgr.on_page_setted() "{{{
+  let s = s:cmpwin.candidates_len>1 ? 's' : ''
+  let &l:stl = printf(self.pat, self.prevtype, self.crrtype, self.nexttype, s:cmpwin.candidates_len, s, s:cmpwin.page, s:cmpwin.lastpage)
+endfunction
+"}}}
+function! s:_stlmgr.on_type_toggled() "{{{
+  let crridx = s:defines.idx
+  let crrlen = s:defines.len
+  let self.crrtype = '<'.(s:defines.list[crridx].name=='' ? 'Alti'.(crridx+1) : s:defines.list[crridx].name).'>'
+  let previdx = crridx-1 <0 ? crrlen-1 : crridx-1
+  let nextidx = crridx+1 >=crrlen ? 0 : crridx+1
+  let self.prevtype = crrlen<2 ? '' : get(s:defines.list[previdx], 'name', 'Alti'.previdx+1)
+  let self.nexttype = crrlen<3 ? '' : get(s:defines.list[nextidx], 'name', 'Alti'.nextidx+1)
+  let s = s:cmpwin.candidates_len>1 ? 's' : ''
+  let &l:stl = printf(self.pat, self.prevtype, self.crrtype, self.nexttype, s:cmpwin.candidates_len, s, s:cmpwin.page, s:cmpwin.lastpage)
 endfunction
 "}}}
 "==================
@@ -255,6 +258,9 @@ function! s:_cmpwin._set_page() "{{{
   let height = min([max([self.cw.min, self.candidates_len]), self.cw.max, &lines])
   let self.lastpage = (self.candidates_len-1) / height + 1
   let self.page = self.page > self.lastpage ? self.lastpage : self.page
+  if g:alti_enable_statusline
+    call s:stlmgr.on_page_setted()
+  end
   return height
 endfunction
 "}}}
@@ -487,12 +493,12 @@ function! alti#init(define, ...)
   call s:_mapping_input()
   call s:_mapping_term_arrowkeys()
   call s:_mapping_prtmaps()
-  call s:cmpwin.update_candidates()
-  call s:cmpwin.buildview()
-  call s:prompt.echo()
   if g:alti_enable_statusline
     let s:stlmgr = s:new_stlmgr(Define)
   end
+  call s:cmpwin.update_candidates()
+  call s:cmpwin.buildview()
+  call s:prompt.echo()
   if Define.type_multibyte
     call s:_keyloop()
   end
@@ -650,17 +656,6 @@ function! s:_writecachefile(filename, list) "{{{
     call mkdir(dir, 'p')
   end
   call writefile(a:list, dir. '/'. a:filename)
-endfunction
-"}}}
-"s:stlmgr
-function! s:_sidetypename(idx) "{{{
-  let define = s:defines.list[a:idx]
-  if get(define, 'sname', '')!=''
-    return '<'. define.sname. '>'
-  elseif get(define, 'name', '')!=''
-    return '<'. define.name. '>'
-  end
-  return '< alti'. (a:idx+1). ' >'
 endfunction
 "}}}
 "s:cmpwin
@@ -883,7 +878,7 @@ function! s:ToggleType(incdec) "{{{
   call s:cmpwin.buildview()
   call s:prompt.echo()
   if g:alti_enable_statusline
-    call s:stlmgr.on_toggletype()
+    call s:stlmgr.on_type_toggled()
   end
   if define.type_multibyte
     let s:defines.enable_keyloop = 1
