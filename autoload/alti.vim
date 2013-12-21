@@ -102,10 +102,10 @@ call s:histholder.load()
 let s:_glboptholder = {}
 function! s:new_glboptholder(define) "{{{
   let _ = {}
-  let _.save_opts = {'magic': &magic, 'timeout': &to, 'timeoutlen': &tm, 'splitbelow': &sb, 'hlsearch': &hls,
-    \ 'report': &report, 'showcmd': &sc, 'sidescroll': &ss, 'sidescrolloff': &siso, 'ttimeout': &ttimeout, 'insertmode': &im,
+  let _.save_opts = {'magic': &magic, 'timeout': &to, 'timeoutlen': &tm, 'splitbelow': &sb, 'report': &report,
+    \ 'showcmd': &sc, 'sidescroll': &ss, 'sidescrolloff': &siso, 'ttimeout': &ttimeout, 'insertmode': &im,
     \ 'guicursor': &gcr, 'ignorecase': &ic, 'langmap': &lmap, 'mousefocus': &mousef, 'imdisable': &imd, 'cmdheight': &ch}
-  set magic timeout timeoutlen=0 splitbelow nohls noinsertmode report=9999 noshowcmd sidescroll=0 siso=0 nottimeout ignorecase lmap= nomousef
+  set magic timeout timeoutlen=0 splitbelow noinsertmode report=9999 noshowcmd sidescroll=0 siso=0 nottimeout ignorecase lmap= nomousef
   let &imdisable = a:define.type_multibyte ? 0 : 1
   call extend(_, s:_glboptholder, 'keep')
   return _
@@ -232,7 +232,7 @@ function! s:new_cmpwin(define) "{{{
   let s:enable_autocmd = 1
   let s:alti_bufnr = bufnr('%')
   abclear <buffer>
-  setl noswf nonu nobl nowrap nolist nospell nocuc winfixheight nohlsearch fdc=0 fdl=99 tw=0 bt=nofile bufhidden=unload nocul
+  setl noswf nonu nobl nowrap nolist nospell nocuc winfixheight nohls fdc=0 fdl=99 tw=0 bt=nofile bufhidden=unload nocul
   if v:version > 702
     setl nornu noundofile cc=0
   end
