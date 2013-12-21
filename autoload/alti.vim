@@ -201,7 +201,8 @@ function! s:_argleadsholder.get_funcargs(...) "{{{
   let self.action = get(a:, 1, [])
   call self._update_cursoridx()
   call self.update_arglead()
-  return [self.arglead, s:prompt.get_inputline(), self.cursoridx]
+  call s:prompt.get_inputline()
+  return [self.arglead, alti#get_arginfo()]
 endfunction
 "}}}
 function! s:_argleadsholder.update_arglead() "{{{
@@ -287,13 +288,13 @@ function! s:_cmpwin.select_move(direction) "{{{
 endfunction
 "}}}
 function! s:_cmpwin.insert_selection() "{{{
-  let selected = self._get_selected()
+  let selected = self._get_selected_word()
   if selected==''
     return
   end
   call s:argleadsholder.update_arglead()
   let self.on_comp = 1
-  let str = call(self.insertstr, [s:argleadsholder.arglead, selected], s:funcself)
+  let str = call(self.insertstr, [selected, alti#get_arginfo()], s:funcself)
   unlet self.on_comp
   call s:prompt.append(str. self.compsep)
   let save_candidates = copy(self.candidates)
@@ -303,19 +304,23 @@ function! s:_cmpwin.insert_selection() "{{{
   end
 endfunction
 "}}}
-function! s:_cmpwin._get_selected() "{{{
-  let selected = get(self.candidates, self.get_selected_idx(), '')
-  return type(selected)==s:TYPE_DIC ? selected.word : selected
-endfunction
-"}}}
-function! s:_cmpwin.get_selected_idx() "{{{
+function! s:_cmpwin._get_selected_idx() "{{{
   let height = self._set_page()
   let self.selected_row = line('.')
   return height*(self.page-1) + self.selected_row-1
 endfunction
 "}}}
+function! s:_cmpwin._get_selected_word() "{{{
+  let selected = get(self.candidates, self._get_selected_idx(), '')
+  return type(selected)==s:TYPE_DIC ? selected.word : selected
+endfunction
+"}}}
+function! s:_cmpwin.get_selected_raw() "{{{
+  return get(self.candidates, self._get_selected_idx(), '')
+endfunction
+"}}}
 function! s:_cmpwin.get_selected_detail() "{{{
-  let selected = get(self.candidates, self.get_selected_idx(), '')
+  let selected = get(self.candidates, self._get_selected_idx(), '')
   if type(selected)!=s:TYPE_DIC
     return ''
   end
@@ -330,7 +335,7 @@ endfunction
 function! s:_cmpwin.buildview() "{{{
   setl ma
   let [candidates, height]= self._get_buildelm()
-  let candidates = type(get(candidates, 0))==s:TYPE_DIC ? map(candidates, 'get(v:val, "abbr", v:val.word)') : candidates
+  let candidates = type(get(candidates, 0))==s:TYPE_DIC ? map(candidates, 'get(v:val, "view", v:val.word)') : candidates
   sil! exe '%delete _ | resize' height
   call map(candidates, '"> ". v:val')
   call setline(1, candidates)
@@ -525,17 +530,17 @@ endfunction
 "}}}
 
 "==================
-function! alti#insertstr_posttab_annotation(arglead, selected_candidate) "{{{
+function! alti#insertstr_posttab_annotation(selected_candidate, context) "{{{
   call alti#on_insertstr_rm_arglead()
   return substitute(a:selected_candidate, '\t.*$', '', '')
 endfunction
 "}}}
-function! alti#insertstr_pretab_annotation(arglead, selected_candidate) "{{{
+function! alti#insertstr_pretab_annotation(selected_candidate, context) "{{{
   call alti#on_insertstr_rm_arglead()
   return substitute(a:selected_candidate, '^.*\t', '', '')
 endfunction
 "}}}
-function! alti#insertstr_raw(arglead, selected_candidate) "{{{
+function! alti#insertstr_raw(selected_candidate, context) "{{{
   call alti#on_insertstr_rm_arglead()
   return a:selected_candidate
 endfunction
@@ -545,11 +550,11 @@ endfunction
 function! s:default_enter() "{{{
 endfunction
 "}}}
-function! s:default_prompt(arglead, cmdline, cursorpos) "{{{
+function! s:default_prompt(arglead, context) "{{{
   return '>>> '
 endfunction
 "}}}
-function! s:default_comp(arglead, cmdline, cursorpos) "{{{
+function! s:default_comp(arglead, context) "{{{
   return []
 endfunction
 "}}}
@@ -686,7 +691,7 @@ endfunction
 function! s:_exit_process(funcname) "{{{
   call s:argleadsholder._update_cursoridx()
   call s:argleadsholder.update_arglead()
-  let state = extend(alti#get_arginfo(), {'lastselected': s:cmpwin._get_selected()})
+  let state = extend(alti#get_arginfo(), {'lastselected': s:cmpwin._get_selected_word()})
   let [CanceledFunc, inputline] = s:prompt.get_exitfunc_elms(a:funcname)
   call s:cmpwin.close()
   wincmd p
@@ -844,8 +849,8 @@ function! s:PrtDetailSelection() "{{{
 endfunction
 "}}}
 function! s:PrtActSelection(action) "{{{
-  let idx = s:cmpwin.get_selected_idx()
-  call s:cmpwin.update_candidates([a:action, idx])
+  let selected = s:cmpwin.get_selected_raw()
+  call s:cmpwin.update_candidates([a:action, selected])
   call s:cmpwin.buildview()
 endfunction
 "}}}
