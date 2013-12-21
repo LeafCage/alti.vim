@@ -528,6 +528,10 @@ function! alti#on_insertstr_rm_arglead() "{{{
   let s:cmpwin.on_comp = 0
 endfunction
 "}}}
+function! alti#get_fuzzy_arglead(arglead) "{{{
+  return substitute(a:arglead, '.\_$\@!', '\0[^\0]\\{-}', 'g')
+endfunction
+"}}}
 
 "==================
 function! alti#insertstr_posttab_annotation(selected_candidate, context) "{{{
