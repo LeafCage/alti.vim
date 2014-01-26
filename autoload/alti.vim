@@ -87,12 +87,12 @@ function! s:histholder.save() "{{{
   call self.reset()
 endfunction
 "}}}
-function! s:histholder.get_nexthist(incdec) "{{{
+function! s:histholder.get_nexthist(delta) "{{{
   let self.hists[0] = self.is_inputsaved ? self.hists[0] : s:prompt.get_inputline()
   let self.hists[0] = self.hists[0]==get(self.hists, 1, "\n") ? '' : self.hists[0]
   let self.is_inputsaved = 1
   let histlen = len(self.hists)
-  let self.idx += a:incdec
+  let self.idx += a:delta
   let self.idx = self.idx<0 ? 0 : self.idx < histlen ? self.idx : histlen > 1 ? histlen-1 : 0
   return self.hists[self.idx]
 endfunction
@@ -327,8 +327,8 @@ function! s:_cmpwin.get_selected_detail() "{{{
   return get(selected, 'detail', '')
 endfunction
 "}}}
-function! s:_cmpwin.turn_page(incdec) "{{{
-  let self.page += a:incdec
+function! s:_cmpwin.turn_page(delta) "{{{
+  let self.page += a:delta
   let self.page = self.page<1 ? self.lastpage : self.page>self.lastpage ? 1 : self.page
 endfunction
 "}}}
@@ -436,8 +436,8 @@ function! s:_prompt.clear() "{{{
   let self.input = ['', '']
 endfunction
 "}}}
-function! s:_prompt.insert_history(incdec) "{{{
-  let self.input = [s:histholder.get_nexthist(a:incdec), '']
+function! s:_prompt.insert_history(delta) "{{{
+  let self.input = [s:histholder.get_nexthist(a:delta), '']
 endfunction
 "}}}
 function! s:_prompt.cursor_start() "{{{
@@ -771,21 +771,21 @@ function! s:PrtInsertReg() "{{{
   end
 endfunction
 "}}}
-function! s:PrtHistory(incdec) "{{{
+function! s:PrtHistory(delta) "{{{
   if !g:alti_max_history
     return
   end
-  call s:prompt.insert_history(a:incdec)
+  call s:prompt.insert_history(a:delta)
   call s:cmpwin.update_candidates()
   call s:cmpwin.buildview()
   call s:prompt.echo()
 endfunction
 "}}}
-function! s:PrtSmartHistory(incdec) "{{{
+function! s:PrtSmartHistory(delta) "{{{
   if s:histholder.idx == 0
     call s:PrtInsertSelection()
   else
-    call s:PrtHistory(a:incdec)
+    call s:PrtHistory(a:delta)
   end
 endfunction
 "}}}
@@ -825,8 +825,8 @@ function! s:PrtCurRight() "{{{
   call s:prompt.echo()
 endfunction
 "}}}
-function! s:PrtPage(incdec) "{{{
-  call s:cmpwin.turn_page(a:incdec)
+function! s:PrtPage(delta) "{{{
+  call s:cmpwin.turn_page(a:delta)
   call s:cmpwin.buildview()
 endfunction
 "}}}
@@ -866,11 +866,11 @@ function! s:PrtSubmit() "{{{
   call s:_exit_process('submittedfunc')
 endfunction
 "}}}
-function! s:ToggleType(incdec) "{{{
+function! s:ToggleType(delta) "{{{
   if s:defines.len<2
     return
   end
-  let idx = s:defines.idx + a:incdec
+  let idx = s:defines.idx + a:delta
   let s:defines.idx = idx >= s:defines.len ? 0 : idx<0 ? s:defines.len-1 : idx
   let define = s:defines.list[s:defines.idx]
   call extend(define, s:dfl_define, 'keep')
