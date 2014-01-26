@@ -164,8 +164,8 @@ function! s:new_stlmgr(define) "{{{
   let _ = {'crrtype': '<'.(a:define.name=='' ? 'Alti'.(s:defines.idx+1) : a:define.name).'>'}
   let previdx = s:defines.idx-1 <0 ? s:defines.len-1 : s:defines.idx-1
   let nextidx = s:defines.idx+1 >=s:defines.len ? 0 : s:defines.idx+1
-  let _.prevtype = s:defines.len<2 ? '' : get(s:defines.list[previdx], 'name', 'Alti'.previdx+1)
-  let _.nexttype = s:defines.len<3 ? '' : get(s:defines.list[nextidx], 'name', 'Alti'.nextidx+1)
+  let _.prevtype = s:defines.len<2 ? '' : has_key(s:defines.list[previdx], 'sname') ? s:defines.list[previdx].sname : get(s:defines.list[previdx], 'name', 'Alti'.previdx+1)
+  let _.nexttype = s:defines.len<3 ? '' : has_key(s:defines.list[nextidx], 'sname') ? s:defines.list[nextidx].sname : get(s:defines.list[nextidx], 'name', 'Alti'.nextidx+1)
   let _.pat = '%%#StatusLineNC#%12.12s  %%#StatusLine#%s  %%#StatusLineNC#%-12.12s%%*%%=(%d item%s) (page: %d/%d)   AltI%%<'
   let &l:stl = printf(_.pat, _.prevtype, _.crrtype, _.nexttype, 0, '', 1, 1)
   call extend(_, s:_stlmgr, 'keep')
@@ -183,8 +183,8 @@ function! s:_stlmgr.on_type_toggled() "{{{
   let self.crrtype = '<'.(s:defines.list[crridx].name=='' ? 'Alti'.(crridx+1) : s:defines.list[crridx].name).'>'
   let previdx = crridx-1 <0 ? crrlen-1 : crridx-1
   let nextidx = crridx+1 >=crrlen ? 0 : crridx+1
-  let self.prevtype = crrlen<2 ? '' : get(s:defines.list[previdx], 'name', 'Alti'.previdx+1)
-  let self.nexttype = crrlen<3 ? '' : get(s:defines.list[nextidx], 'name', 'Alti'.nextidx+1)
+  let self.prevtype = crrlen<2 ? '' : has_key(s:defines.list[previdx], 'sname') ? s:defines.list[previdx].sname : get(s:defines.list[previdx], 'name', 'Alti'.previdx+1)
+  let self.nexttype = crrlen<3 ? '' : has_key(s:defines.list[nextidx], 'sname') ? s:defines.list[nextidx].sname : get(s:defines.list[nextidx], 'name', 'Alti'.nextidx+1)
   let s = s:cmpwin.candidates_len>1 ? 's' : ''
   let &l:stl = printf(self.pat, self.prevtype, self.crrtype, self.nexttype, s:cmpwin.candidates_len, s, s:cmpwin.page, s:cmpwin.lastpage)
 endfunction
@@ -475,7 +475,7 @@ endfunction
 
 "=============================================================================
 "Main
-let s:dfl_define = {'name': '', 'sname': '', 'default_text': '', 'static_text': '', 'prompt': 's:default_prompt', 'prompt_hl': 'Comment', 'comp': 's:default_comp', 'insertstr': 'alti#insertstr_posttab_annotation', 'canceled': 's:default_canceled', 'submitted': 's:default_submitted', 'append_compsep': 1, 'type_multibyte': 0,}
+let s:dfl_define = {'name': '', 'default_text': '', 'static_text': '', 'prompt': 's:default_prompt', 'prompt_hl': 'Comment', 'comp': 's:default_comp', 'insertstr': 'alti#insertstr_posttab_annotation', 'canceled': 's:default_canceled', 'submitted': 's:default_submitted', 'append_compsep': 1, 'type_multibyte': 0,}
 function! alti#init(define, ...)
   if has_key(s:, 'cmpwin')| return| end
   let firstmess = substitute(get(a:, 1, ''), "^\n", '', '')
