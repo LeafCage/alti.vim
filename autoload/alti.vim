@@ -516,7 +516,7 @@ function! alti#get_arginfo() "{{{
     return {}
   end
   let ret = {'precursor': s:prompt.input[0], 'postcursor': s:prompt.input[1], 'inputline': s:prompt.inputline, 'cursoridx': s:argleadsholder.cursoridx, 'arglead': s:argleadsholder.arglead, 'ordinal': s:argleadsholder.ordinal, 'action': s:argleadsholder.action}
-  let ret.args = split(s:prompt.inputline, '\%(\\\@<!\s\)\+')
+  let ret.args = alti#split2args(s:prompt.inputline)
   return ret
 endfunction
 "}}}
@@ -530,6 +530,10 @@ endfunction
 "}}}
 function! alti#get_fuzzy_arglead(arglead) "{{{
   return substitute(a:arglead, '.\_$\@!', '\0[^\0]\\{-}', 'g')
+endfunction
+"}}}
+function! alti#split2args(input) "{{{
+  return split(a:input, '\%(\\\@<!\s\)\+')
 endfunction
 "}}}
 

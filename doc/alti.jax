@@ -297,6 +297,11 @@ alti#on_insertstr_rm_arglead()		*alti#on_insertstr_rm_arglead()*
 	るようになる。
 
 
+alti#split2args({input})			*alti#split2args()*
+	{input}文字列をバックスラッシュでエスケープされていない空白文字で分割
+	したリストを返す。
+
+
 --------------------------------------
 						*alti-insertstr-functions*
 以下の関数の関数名は|alti-define-insertstr|の値として利用することが出来る。
