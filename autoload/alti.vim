@@ -202,7 +202,7 @@ function! s:_argleadsholder.get_funcargs(...) "{{{
   call self._update_cursoridx()
   call self.update_arglead()
   call s:prompt.get_inputline()
-  return [self.arglead, alti#get_arginfo()]
+  return [alti#get_arginfo()]
 endfunction
 "}}}
 function! s:_argleadsholder.update_arglead() "{{{
@@ -294,7 +294,7 @@ function! s:_cmpwin.insert_selection() "{{{
   end
   call s:argleadsholder.update_arglead()
   let self.on_comp = 1
-  let str = call(self.insertstr, [selected, alti#get_arginfo()], s:funcself)
+  let str = call(self.insertstr, [alti#get_arginfo(), selected], s:funcself)
   unlet self.on_comp
   call s:prompt.append(str. self.compsep)
   let save_candidates = copy(self.candidates)
@@ -388,7 +388,7 @@ function! s:_prompt.get_inputline() "{{{
 endfunction
 "}}}
 function! s:_prompt.get_exitfunc_elms(exitfuncname) "{{{
-  return [self[a:exitfuncname], self.get_inputline()]
+  return self[a:exitfuncname]
 endfunction
 "}}}
 function! s:_prompt.echo() "{{{
@@ -538,19 +538,19 @@ endfunction
 "}}}
 
 "==================
-function! alti#insertstr_posttab_annotation(selected_candidate, context) "{{{
+function! alti#insertstr_posttab_annotation(context, selected) "{{{
   call alti#on_insertstr_rm_arglead()
-  return substitute(a:selected_candidate, '\t.*$', '', '')
+  return substitute(a:selected, '\t.*$', '', '')
 endfunction
 "}}}
-function! alti#insertstr_pretab_annotation(selected_candidate, context) "{{{
+function! alti#insertstr_pretab_annotation(context, selected) "{{{
   call alti#on_insertstr_rm_arglead()
-  return substitute(a:selected_candidate, '^.*\t', '', '')
+  return substitute(a:selected, '^.*\t', '', '')
 endfunction
 "}}}
-function! alti#insertstr_raw(selected_candidate, context) "{{{
+function! alti#insertstr_raw(context, selected) "{{{
   call alti#on_insertstr_rm_arglead()
-  return a:selected_candidate
+  return a:selected
 endfunction
 "}}}
 
@@ -558,22 +558,22 @@ endfunction
 function! s:default_enter() "{{{
 endfunction
 "}}}
-function! s:default_prompt(arglead, context) "{{{
+function! s:default_prompt(context) "{{{
   return '>>> '
 endfunction
 "}}}
-function! s:default_comp(arglead, context) "{{{
+function! s:default_comp(context) "{{{
   return []
 endfunction
 "}}}
-function! s:default_submitted(input, laststate) "{{{
+function! s:default_submitted(context) "{{{
   if a:input =~ '^\s*$'
     return
   end
   exe a:input
 endfunction
 "}}}
-function! s:default_canceled(input, laststate) "{{{
+function! s:default_canceled(context) "{{{
 endfunction
 "}}}
 "==================
@@ -700,10 +700,10 @@ function! s:_exit_process(funcname) "{{{
   call s:argleadsholder._update_cursoridx()
   call s:argleadsholder.update_arglead()
   let state = extend(alti#get_arginfo(), {'lastselected': s:cmpwin._get_selected_word()})
-  let [CanceledFunc, inputline] = s:prompt.get_exitfunc_elms(a:funcname)
+  let CanceledFunc = s:prompt.get_exitfunc_elms(a:funcname)
   call s:cmpwin.close()
   wincmd p
-  call call(CanceledFunc, [inputline, state], get(s:, 'funcself', {}))
+  call call(CanceledFunc, [state], get(s:, 'funcself', {}))
   let save_imd = &imd
   set imdisable
   let &imd = save_imd
