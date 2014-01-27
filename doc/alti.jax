@@ -55,8 +55,8 @@ https://github.com/LeafCage/alti.vim
 1. altiの定義を作る。(altiはライブラリだからそのままでは動かない。)
 2. alti#init()に定義を渡す。
 3. altiが動く。
-4. <C-j><C-k>で候補を選択、通常入力で絞込み、<C-f>で次の候補ページへ、
-   <Tab>(or <C-y> or <C-n>※)で選択されている候補を挿入。
+4. <C-j><C-k>で候補を選択、通常入力で絞込み、<C-v>で次の候補ページへ、
+   <Tab>(or <C-n>※)で選択されている候補を挿入。
 5. こうしてコマンドを組み立てたら、<CR>で実行。
 6. コマンドを受け取った関数が何かする。やった！
 
@@ -76,6 +76,11 @@ g:alti_cache_dir				*g:alti_cache_dir*
 g:alti_max_history				*g:alti_max_history*
 	既定値: 'history'
 	記録する履歴の数。標準では'history'オプションの設定に等しい。
+
+
+g:alti_enable_statusline			*g:alti_enable_statusline*
+	既定値: 1
+	非0 なら専用のステータスラインを使う。
 
 
 g:alti_comp_window				*g:alti_match_window*
@@ -128,17 +133,21 @@ g:alti_prompt_mappings				*g:alti_prompt_mappings*
  \ 'PrtCurEnd()': ['<C-e>'],			入力欄の末尾へ
  \ 'PrtCurLeft()': ['<C-h>', '<Left>'],		入力欄カーソルを左へ
  \ 'PrtCurRight()': ['<C-l>', '<Right>'],	入力欄カーソルを右へ
- \ 'PrtPageNext()': ['<C-f>', '<PageDown>', '<kPageDown>'],
+ \ 'PrtPage(1)': ['<C-v>', '<PageDown>', '<kPageDown>']
 			候補が多すぎて窓に入らないとき、次のページへとめくる
- \ 'PrtPagePrevious()': ['<C-b>', '<PageUp>', '<kPageUp>'],
+ \ 'PrtPage(-1)': ['<C-t>', '<PageUp>', '<kPageUp>']
 			候補が多すぎて窓に入らないとき、前のページへとめくる
  \ 'PrtSelectMove("j")': ['<C-j>', '<Down>'],		候補窓の選択を1つ下へ
  \ 'PrtSelectMove("k")': ['<C-k>', '<Up>'],		候補窓の選択を1つ上へ
  \ 'PrtSelectMove("t")': ['<Home>', '<kHome>'],		候補窓の先頭へ
  \ 'PrtSelectMove("b")': ['<End>', '<kEnd>'],		候補窓の末尾へ
- \ 'PrtSelectInsert()': ['<Tab>', '<C-y>'],		選択候補を入力欄へ挿入
+ \ 'PrtSelectInsert()': ['<Tab>'],			選択候補を入力欄へ挿入
  \ 'PrtExit()': ['<Esc>', '<C-c>', '<C-g>'],		キャンセルしてalti終了
  \ 'PrtSubmit()': ['<CR>', '<2-LeftMouse>'],		確定してalti終了
+ \ 'ToggleType(1)': ['<C-f>', '<C-_>', '<C-Down>']
+		複数のタイプを持つ定義のタイプを次のタイプに切り替える
+ \ 'ToggleType(-1)': ['<C-b>', '<C-]>', '<C-^>', '<C-Up>']
+		複数のタイプを持つ定義のタイプを前のタイプに切り替える
 
  \ 'Nop()':	何もしない。キーを潰すためだけに存在する。ここに入れられたキー
 		が他の定義とバッティングしたとき、他の定義の方が優先される。
@@ -183,35 +192,48 @@ alti#init({define}, [{firstmessage}, [{funcself}]])
 	使われる。(functionにdict属性をつけた場合のみ。詳しくは後述。)
 	定義用の辞書{define}の要素は以下の通り。いずれも省略可能。
 
-	default_text (文字列) :		*alti-define-default_text*
+	default_text (文字列) :			*alti-define-default_text*
 		開始時に標準で入力されているテキスト。既定では空文字である。
-	static_text  (文字列) :		*alti-define-static_text*
+	static_text  (文字列) :			*alti-define-static_text*
 		default_textと似ているが削除されない。ユーザ定義コマンド用の補
 		完関数をそのまま利用するときに使う。既定では空文字である。
-	enter (関数名) :		*alti-define-enter*
+	enter (関数の参照･グローバル関数名) :	*alti-define-enter*
 		alti開始前の、Altiバッファに移る前に呼ばれる。元いたバッファの
 		値を利用するときにこの関数内で取得するとよい。引数は取らない。
-	comp (関数名) :			*alti-define-comp*
-		補完窓に表示させる内容を文字列のリストで返す。
-		ArgLead, CmdLine, CursorPosの3つの引数を取る。
-		それらは|command-completion-customlist|で説明されている。
-		(補完対象文字列,インプットライン全体,カーソル位置インデックス)
-		また、|alti#get_arginfo()|を使うことで補完対象についての更
-		なる情報が得られる（後述）。
+	comp (関数の参照･グローバル関数名) :	*alti-define-comp*
+		1つの引数{context}を取り、|alti-context|
+		補完窓に表示させる内容のリスト型を返す。
+		リストの要素は文字列か、以下のキー・値を持つ辞書である。リスト
+		の要素は全て文字列か、全て辞書でなければならず、文字列と辞書を
+		混在させることは出来ない。
+		この辞書に独自のキーを作るときには、将来追加されるかも知れない
+		キーのことを考慮して、"_newkey" のように頭にアンダースコアを付
+		けたキー名にすることが推奨される。 >
+		{
+		  \ "word": "表示・絞り込み・挿入に使われる文字列",
+		  \ "view": "表示に使われる文字列 (省略可)",
+		  \ "search": "絞り込みに使われる文字列 (省略可)",
+		  \ "insert": "挿入に使われる文字列 (省略可)",
+		  \ "detail": "PrtDetailSelection()で表示される情報 (省略可)"
+		}
+<		"view" "search" "insert"が優先され、その要素がないとき"word"が
+		使われる。
 		また、|alti-define-insertstr|関数を変更することで候補について
 		の注釈を付加したり高度な補完を実現することが可能。
 		既定関数は空リストを返す。
-	prompt (関数名) :		*alti-define-prompt*
-		|alti-define-comp|と同じくArgLead, CmdLine, CursorPosの3つの引
-		数を取る。プロンプト文字列を返す。入力に応じてプロンプトを変化
-		させることが可能になる。既定関数が返すプロンプト文字列は">>> "
-	insertstr (関数名) :		*alti-define-insertstr*
+	prompt (関数の参照･グローバル関数名) :	*alti-define-prompt*
+		|alti-define-comp|と同じく1つの引数{context}を取り
+		|alti-context|、プロンプト文字列を返す。入力に応じてプロンプト
+		を変化させることが可能になる。既定関数が返すプロンプト文字列は >
+		">>> "
+<	insertstr (関数の参照･グローバル関数名) :	*alti-define-insertstr*
 		選択された候補で補完を実行するとき呼ばれ、補完を完成させる。
-		ArgLead と SelectedCandidate(選ばれた候補)を引数に取る。
+		2つの引数{context}|alti-context|と{selected}(選ばれた候補文字
+		列)を取る。
 		通常次のように SelectedCandidate の先頭から ArgLead を除いた値
 		を返すようにする。 >
-	  function! alti#insertstr_raw_norm_arglead(ArgLead, SelectedCandidate)
-	    return substitute(a:SelectedCandidate, '^'.a:ArgLead, '', '')
+	  function! alti#insertstr_raw_norm_arglead(context, selected)
+	    return substitute(a:selected, '^'.a:context.arglead, '', '')
 	  endfunction
 <		これはこの関数の返値が実際に挿入される文字列であるためである。
 		つまり、"arg"まで入力されている状態で"argument"という候補で補
@@ -221,33 +243,33 @@ alti#init({define}, [{firstmessage}, [{funcself}]])
 		|alti#on_insertstr_rm_arglead()|を呼んでいるのなら、
 		ArgLeadを除く操作をせず、返値がそのまま挿入される補完の文字列
 		となる。 >
-	  function! alti#insertstr_raw_rm_arglead(ArgLead, SelectedCandidate)
+	  function! alti#insertstr_raw_rm_arglead(context, selected)
 	    call alti#on_insertstr_rm_arglead()
-	    return a:SelectedCandidate
+	    return a:selected
 	  endfunction
 <		既定値は "alti#insertstr_posttab_annotation" である。これは、
 		タブ文字以降を削除する関数である。これにより、候補の後にタブ文
 		字を挟んで注釈を付けられるようにすることを意図している。標準で
 		insertstr関数として利用できる関数が複数用意されている。
 		詳しくは|alti-insertstr-functions|を参照。
-	submitted (関数名) :		*alti-define-submitted*
-		Submitされた後に呼ばれる関数。引数を2つ取る。一つ目は入力され
-		た文字列。二つ目は終了前の状態を収めた辞書。その要素は
-		|alti#get_arginfo()|で取得されるものに加えて、"lastselected"と
-		いう、終了前にカーソルが当たっていた(挿入されていない)補完候補
-		である。
+	submitted (関数の参照･グローバル関数名) :	*alti-define-submitted*
+		Submitされた後に呼ばれる関数。引数を2つ取る。一つ目は終了前の
+		状態を収めた辞書{context}。その要素は|alti-context|の要素に加
+		えて、"lastselected"というキーで、終了前にカーソルが当たってい
+		た(挿入されていない)補完候補文字列を収めた値が追加されている。
+		二つ目は、入力された文字列{input}。
 		既定関数は入力文字列が空でなければ|:execute|する。
-	canceled (関数名) :		*alti-define-canceled*
+	canceled (関数の参照･グローバル関数名) :	*alti-define-canceled*
 		キャンセルされた後に呼ばれる関数。submittedと同じく引数を2つ取
 		る。内容はsubmittedのものと同じである。既定関数は何もしない。
-	append_compsep (数値) :		*alti-define-append_compsep*
+	append_compsep (数値) :			*alti-define-append_compsep*
 		非0なら、補完時に自動で空白を挟む。既定値は1である。
-	type_mulibyte (数値) :		*alti-define-type_multibyte*
+	type_mulibyte (数値) :			*alti-define-type_multibyte*
 		非0なら、マルチバイト文字を入力できるようにする。ただしカーソ
 		ルがコマンドラインの左下に常に表示されるようになる。">>> "のよ
 		うに、プロンプト文字を長めに作って入力文字列にかからないように
 		すれば少しは気にならなくなるかも知れない。既定値は0である。
-	self (辞書) :			*alti-define-self*
+	self (辞書) :				*alti-define-self*
 		alti内部で実行されるユーザ定義辞書の"self"にこれが代入されるよ
 		うになる。既定値は空の辞書 {} 。
 		|alti#init()|の第三引数{funcself}が同時に渡されていた場合は、
@@ -288,6 +310,11 @@ alti#on_insertstr_rm_arglead()		*alti#on_insertstr_rm_arglead()*
 	るようになる。
 
 
+alti#split2args({input})			*alti#split2args()*
+	{input}文字列をバックスラッシュでエスケープされていない空白文字で分割
+	したリストを返す。
+
+
 --------------------------------------
 						*alti-insertstr-functions*
 以下の関数の関数名は|alti-define-insertstr|の値として利用することが出来る。
@@ -312,8 +339,13 @@ alti#insertstr_raw({ArgLead}, {SelectedCandidate})
 TODO						*alti-todo*
 
 - ハイライトをもう少しどうにかしたい。
-- ステータスラインに情報を表示したい
+- エントリの削除やソートというアクションの実装
+- デフォルトキーマッピングの見直し
+-- <C-z>(<C-s>)<C-x>ソート (is_sortableオプションを付ける (comp関数でそういう
+			アクションがあったことを受け取らせる))
+- ヴァーチャルなinputline
+- 区切り文字(<Space>)でPrtSelectInsertを兼用
 
 
 ==============================================================================
-vim:tw=78:ts=8:ft=help:norl:noet:fen:fdl=0:
+vim:tw=78:ts=8:ft=help:norl:noet:fen:
