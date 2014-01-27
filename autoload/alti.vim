@@ -33,6 +33,7 @@ let s:prtmaps['PrtSelectMove("k")'] = ['<C-k>', '<Up>']
 let s:prtmaps['PrtSelectMove("t")'] = ['<Home>', '<kHome>']
 let s:prtmaps['PrtSelectMove("b")'] = ['<End>', '<kEnd>']
 let s:prtmaps['PrtInsertSelection()'] = ['<Tab>']
+let s:prtmaps['PrtInsertSelection("\<Space>")'] = ['<Space>']
 let s:prtmaps['PrtDetailSelection()'] = ['<C-g>']
 let s:prtmaps['PrtActSelection("z")'] = ['<C-z>', '<C-s>']
 let s:prtmaps['PrtActSelection("x")'] = ['<C-x>']
@@ -589,7 +590,7 @@ function! s:_mapping_input() "{{{
   for each in [34, 92, 124]
     exe printf(cmd, each, escape(nr2char(each), '"|\'))
   endfo
-  for each in [32, 33, 125, 126] + range(35, 91) + range(93, 123)
+  for each in [33, 125, 126] + range(35, 91) + range(93, 123)
     exe printf(cmd, each, nr2char(each))
   endfo
 endfunction
@@ -621,7 +622,7 @@ function! s:_keyloop() "{{{
     redraw
     let nr = getchar()
     let char = type(nr)==s:TYPE_NUM ? nr2char(nr) : nr
-    if nr >=# 0x20
+    if nr >= 33
       cal s:PrtAdd(char)
     else
       let cmd = matchstr(maparg(char), ':<C-u>\zs.\+\ze<CR>$')
@@ -838,7 +839,11 @@ function! s:PrtSelectMove(direction) "{{{
   call s:cmpwin.select_move(a:direction)
 endfunction
 "}}}
-function! s:PrtInsertSelection() "{{{
+function! s:PrtInsertSelection(...) "{{{
+  if a:0 && match(s:prompt.input[0], '\%([^\\]\\\)\@<!\\$')!=-1
+    call s:PrtAdd(a:1)
+    return
+  end
   call s:histholder.reset()
   call s:cmpwin.insert_selection()
   call s:cmpwin.buildview()
