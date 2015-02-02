@@ -8,8 +8,8 @@ let g:alti_enable_statusline = get(g:, 'enable_statusline', 1)
 "======================================
 aug AltI
   autocmd!
-  autocmd BufEnter [AltI]   if s:enable_autocmd && has_key(s:, 'alti_bufnr') && s:alti_bufnr > 0| exe s:alti_bufnr.'bw!'| end
-  autocmd BufLeave [AltI]   if s:enable_autocmd && has_key(s:, 'cmpwin')| call s:cmpwin.close()| end
+  autocmd BufEnter :[AltI]   if s:enable_autocmd && has_key(s:, 'alti_bufnr') && s:alti_bufnr > 0| exe s:alti_bufnr.'bw!'| end
+  autocmd BufLeave :[AltI]   if s:enable_autocmd && has_key(s:, 'cmpwin')| call s:cmpwin.close()| end
 aug END
 let s:enable_autocmd = 1
 
@@ -230,11 +230,11 @@ function! s:new_cmpwin(define) "{{{
   let restcmds = {'winrestcmd': winrestcmd(), 'lines': &lines, 'winnr': winnr('$')}
   let cw_opts = s:_get_compwin_opts()
   let s:enable_autocmd = 0
-  silent! exe 'keepalt' (cw_opts.pos=='top' ? 'topleft' : 'botright') '1new [AltI]'
+  silent! exe 'keepalt' (cw_opts.pos=='top' ? 'topleft' : 'botright') '1new :[AltI]'
   let s:enable_autocmd = 1
   let s:alti_bufnr = bufnr('%')
   abclear <buffer>
-  setl noswf nonu nobl nowrap nolist nospell nocuc winfixheight nohls fdc=0 fdl=99 tw=0 bt=nofile bufhidden=unload nocul
+  setl noro noswf nonu nobl nowrap nolist nospell nocuc winfixheight nohls fdc=0 fdl=99 tw=0 bt=nofile bufhidden=unload nocul
   if v:version > 702
     setl nornu noundofile cc=0
   end
