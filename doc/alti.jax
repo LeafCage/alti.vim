@@ -83,13 +83,13 @@ g:alti_enable_statusline			*g:alti_enable_statusline*
 	非0 なら専用のステータスラインを使う。
 
 
-g:alti_comp_window				*g:alti_match_window*
+g:alti_cmpl_window				*g:alti_match_window*
 	補完窓に関する設定はこの変数の文字列で行う。
 	窓の位置（上か下か）、候補の並び（上から下か下から上か）、窓の最大高、
 	最小高、候補の最大値を決定する。 |g:ctrlp_match_window|に似せている。
 	設定されていない値については標準の値が利用される。
 	Example: >
-	let g:alti_comp_window = 'bottom,order:btt,min:1,max:10,results:10'
+	let g:alti_cmpl_window = 'bottom,order:btt,min:1,max:10,results:10'
 <
 	窓の位置: (default: bottom)
 		top / bottom という文字列が含まれていたらそのように設定される。
@@ -185,10 +185,11 @@ g:alti_getreg_mappings				*g:alti_getreg_mappings*
 関数						*alti-functions*
 
 						*alti#init()*
-alti#init({define}, [{firstmessage}, [{funcself}]])
-	この関数にaltiの定義を書いた辞書{define}を渡すとaltiが実行される。
+alti#init({define}, [{firstmessage}, [{bind}]])
+	この関数にaltiの定義{define}(辞書)または定義{define}のリストを渡すと
+	altiが実行される。
 	文字列{firstmessage}を渡すと開始直後にのみそれが表示される。
-	辞書{funcself}を渡すと、{define}で指定した関数内での変数"self"にそれが
+	辞書{bind}を渡すと、{define}で指定した関数内での変数"self"にそれが
 	使われる。(functionにdict属性をつけた場合のみ。詳しくは後述。)
 	定義用の辞書{define}の要素は以下の通り。いずれも省略可能。
 
@@ -201,15 +202,16 @@ alti#init({define}, [{firstmessage}, [{funcself}]])
 		alti開始前の、AltIバッファに移る前に呼ばれる関数である。
 		元いたバッファの値を利用するときにこの関数内で取得するとよい。
 		引数は取らない。
-	comp (関数の参照･グローバル関数名) :	*alti-define-comp*
-		1つの引数{context}を取り、|alti-context|
-		補完窓に表示させる内容のリスト型を返す。
-		リストの要素は文字列か、以下のキー・値を持つ辞書である。リスト
-		の要素は全て文字列か、全て辞書でなければならず、文字列と辞書を
-		混在させることは出来ない。
+	cmpl (関数の参照･グローバル関数名) :	*alti-define-cmpl*
+		1つの引数{context}(辞書)|alti-context|を取り、補完窓に表示させ
+		る内容のリスト型を返す関数である。
+		返値であるリストは、要素が文字列か辞書である。が、文字列である
+		なら全て文字列、辞書であるなら全て辞書と、要素の方をそろえねば
+		ならず、文字列と辞書を混在させることはできない。
+		辞書を返す場合、辞書のキーは後に述べるものである。
 		この辞書に独自のキーを作るときには、将来追加されるかも知れない
-		キーのことを考慮して、"_newkey" のように頭にアンダースコアを付
-		けたキー名にすることが推奨される。 >
+		キーのことを考慮して、キー名をアルファベット小文字以外で始める
+		ことが推奨される。 >
 		{
 		  \ "word": "表示・絞り込み・挿入に使われる文字列",
 		  \ "view": "表示に使われる文字列 (省略可)",
@@ -223,14 +225,14 @@ alti#init({define}, [{firstmessage}, [{funcself}]])
 		の注釈を付加したり高度な補完を実現することが可能。
 		既定関数は空リストを返す。
 	prompt (関数の参照･グローバル関数名) :	*alti-define-prompt*
-		|alti-define-comp|と同じく1つの引数{context}を取り
-		|alti-context|、プロンプト文字列を返す。入力に応じてプロンプト
-		を変化させることが可能になる。既定関数が返すプロンプト文字列は >
-		">>> "
-<	insertstr (関数の参照･グローバル関数名) :	*alti-define-insertstr*
+		|alti-define-cmpl|と同じく1つの引数{context}(辞書)を取り
+		|alti-context|、プロンプト文字列を返す関数である。入力に応じて
+		プロンプトを変化させることが可能になる。既定関数が返すプロンプ
+		ト文字列は ">>> " である。
+	insertstr (関数の参照･グローバル関数名) :	*alti-define-insertstr*
+		この関数は2つ引数を取る。1つ目は {context}(辞書)|alti-context|
+		2つ目は {selected}(選ばれた候補文字列) である。
 		選択された候補で補完を実行するとき呼ばれ、補完を完成させる。
-		2つの引数{context}|alti-context|と{selected}(選ばれた候補文字
-		列)を取る。
 		通常次のように SelectedCandidate の先頭から ArgLead を除いた値
 		を返すようにする。 >
 	  function! alti#insertstr_raw_norm_arglead(context, selected)
@@ -254,44 +256,46 @@ alti#init({define}, [{firstmessage}, [{funcself}]])
 		insertstr関数として利用できる関数が複数用意されている。
 		詳しくは|alti-insertstr-functions|を参照。
 	submitted (関数の参照･グローバル関数名) :	*alti-define-submitted*
-		Submitされた後に呼ばれる関数。引数を2つ取る。一つ目は終了前の
-		状態を収めた辞書{context}。その要素は|alti-context|の要素に加
-		えて、"lastselected"というキーで、終了前にカーソルが当たってい
-		た(挿入されていない)補完候補文字列を収めた値が追加されている。
-		二つ目は、入力された文字列{input}。
+		Submitされた後に呼ばれる関数。2つないし3つ仮引数(パラメータ)が
+		定義され、その数だけの実引数を取る。
+		1つ目は {context}(辞書)|alti-context|である。
+		2つ目は {input}(alti終了時に入力されていた文字列) である。
+		3つ目は{lastselected}である。これは AltI 終了時にカーソルの当
+		たっていた(挿入されていない)補完候補文字列である。この仮引数は
+		省略することができる。
 		既定関数は入力文字列が空でなければ|:execute|する。
 	canceled (関数の参照･グローバル関数名) :	*alti-define-canceled*
 		キャンセルされた後に呼ばれる関数。submittedと同じく引数を2つ取
 		る。内容はsubmittedのものと同じである。既定関数は何もしない。
-	append_compsep (数値) :			*alti-define-append_compsep*
+	append_cmplsep (数値) :			*alti-define-append_cmplsep*
 		非0なら、補完時に自動で空白を挟む。既定値は1である。
 	type_mulibyte (数値) :			*alti-define-type_multibyte*
 		非0なら、マルチバイト文字を入力できるようにする。ただしカーソ
 		ルがコマンドラインの左下に常に表示されるようになる。">>> "のよ
 		うに、プロンプト文字を長めに作って入力文字列にかからないように
 		すれば少しは気にならなくなるかも知れない。既定値は0である。
-	self (辞書) :				*alti-define-self*
+	bind (辞書) :				*alti-define-bind*
 		alti内部で実行されるユーザ定義辞書の"self"にこれが代入されるよ
 		うになる。既定値は空の辞書 {} 。
-		|alti#init()|の第三引数{funcself}が同時に渡されていた場合は、
-		両者が合成される。共通のkeyがあった場合は{funcself}の方が優先
-		される。
+		|alti#init()|の第三引数 {bind} が同時に渡されていた場合は、両
+		者が合成される。共通のkeyがあった場合は {bind} の方が優先され
+		る。
 
 	関数名に指定した関数にはdict属性を指定しても良い。そうした場合、"self"
 	変数が利用できる。この"self"変数は初期値は空の辞書で、他のaltiの関数内
-	でも同じものを参照できる。|alti#init()|の第三引数{funcself}を渡すとそ
-	れが"self"に代入される。altiが終了されるまで(submitted関数と、canceled
-	関数の終了まで)で有効。 >
+	でも同じものを参照できる。|alti#init()|の第三引数{bind}を渡すとそれが
+	"self"に代入される。altiが終了されるまで(submitted関数と、canceled関数
+	の終了まで)で有効。 >
 		function! alti#xxx#enter() dict
 		  let self.filetype = &filetype
 		endfunction
-		function! alti#xxx#comp() dict
+		function! alti#xxx#cmpl() dict
 		  return map(['a', 'b', 'c'], 'v:val. '.'.self.filetype')
 		endfunction
 
 
 alti#get_arginfo()				*alti#get_arginfo()*
-	comp関数などの中で使える、現在の文脈を記した辞書を返す。
+	cmpl関数などの中で使える、現在の文脈を記した辞書を返す。
 	AltIバッファが存在しないときに呼ぶとエラーになる。
 	要素は以下の通り。
 	precursor  : カーソルより前の文字列
@@ -342,7 +346,7 @@ TODO						*alti-todo*
 - ハイライトをもう少しどうにかしたい。
 - エントリの削除やソートというアクションの実装
 - デフォルトキーマッピングの見直し
--- <C-z>(<C-s>)<C-x>ソート (is_sortableオプションを付ける (comp関数でそういう
+-- <C-z>(<C-s>)<C-x>ソート (is_sortableオプションを付ける (cmpl関数でそういう
 			アクションがあったことを受け取らせる))
 - ヴァーチャルなinputline
 - 区切り文字(<Space>)でPrtSelectInsertを兼用
