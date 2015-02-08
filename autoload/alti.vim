@@ -2,10 +2,6 @@ if exists('s:save_cpo')| finish| endif
 let s:save_cpo = &cpo| set cpo&vim
 scriptencoding utf-8
 "=============================================================================
-let g:alti_max_history = get(g:, 'alti_max_history', exists('+history')? &hi: 20)
-let g:alti_cache_dir = get(g:, 'alti_cache_dir', '~/.cache/alti')
-let g:alti_enable_statusline = get(g:, 'enable_statusline', 1)
-"======================================
 aug AltI
   autocmd!
   autocmd BufEnter :[AltI]   if s:enable_autocmd && has_key(s:, 'alti_bufnr') && s:alti_bufnr > 0| exe s:alti_bufnr.'bw!'| end
