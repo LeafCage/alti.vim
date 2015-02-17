@@ -40,7 +40,6 @@ let s:prtmaps['PrtExit()'] = ['<Esc>', '<C-c>']
 let s:prtmaps['PrtSubmit()'] = ['<CR>']
 let s:prtmaps['ToggleType(1)'] = ['<C-f>', '<C-_>', '<C-Down>']
 let s:prtmaps['ToggleType(-1)'] = ['<C-b>', '<C-]>', '<C-^>', '<C-Up>']
-let s:prtmaps['Nop()'] = ['<BS>', '<C-]>', '<Del>', '<C-d>', '<C-w>', '<C-u>', '<C-r>', '<C-n>', '<C-p>', '<C-a>', '<C-e>', '<C-h>', '<Left>', '<C-l>', '<Right>', '<C-i>', '<C-o>', '<PageDown>', '<kPageDown>', '<PageUp>', '<kPageUp>', '<C-j>', '<Down>', '<C-k>', '<Up>', '<Home>', '<kHome>', '<End>', '<kEnd>', '<C-v>', '<C-y>', '<Esc>', '<C-c>', '<C-g>', '<CR>', '<C-Tab>', '<S-Tab>', '<C-CR>', '<C-x>', '<C-s>', '<C-t>', '<C-z>', '<C-\>', '<C-^>', '<C-Up>', '<C-Down>', '<C-Left>', '<C-Right>', '<S-Up>', '<S-Down>', '<S-Left>', '<S-Right>', '<Insert>', '<2-LeftMouse>', '<MiddleMouse>', '<RightMouse>',]
 
 call extend(s:prtmaps, get(g:, 'alti_prompt_mappings', {}))
 call filter(s:prtmaps, 'v:val!=[]')
@@ -100,13 +99,11 @@ call s:HistHolder.load()
 "==================
 let s:GlboptHolder = {}
 function! s:newGlboptHolder(define) "{{{
-  let obj = {}
-  let obj.save_opts = {'magic': &magic, 'timeout': &to, 'timeoutlen': &tm, 'splitbelow': &sb, 'report': &report,
-    \ 'showcmd': &sc, 'sidescroll': &ss, 'sidescrolloff': &siso, 'ttimeout': &ttimeout, 'insertmode': &im,
-    \ 'guicursor': &gcr, 'ignorecase': &ic, 'langmap': &lmap, 'mousefocus': &mousef, 'imdisable': &imd, 'cmdheight': &ch}
-  set magic timeout timeoutlen=0 splitbelow noinsertmode report=9999 noshowcmd sidescroll=0 siso=0 nottimeout ignorecase lmap= nomousef
-  let &imdisable = a:define.type_multibyte ? 0 : 1
-  call extend(obj, s:GlboptHolder, 'keep')
+  let obj = copy(s:GlboptHolder)
+  let obj.save_opts = {'magic': &magic, 'splitbelow': &sb, 'report': &report,
+    \ 'showcmd': &sc, 'sidescroll': &ss, 'sidescrolloff': &siso, 'insertmode': &im,
+    \ 'guicursor': &gcr, 't_ve': &t_ve, 'ignorecase': &ic, 'langmap': &lmap, 'mousefocus': &mousef, 'cmdheight': &ch}
+  set magic splitbelow noinsertmode report=9999 noshowcmd sidescroll=0 siso=0 ignorecase lmap= nomousef
   return obj
 endfunction
 "}}}
@@ -475,7 +472,7 @@ endfunction
 "Main:
 let s:dfl_define = {'name': '', 'default_text': '', 'static_text': '', 'prompt': 's:default_prompt', 'cmpl': 's:default_cmpl',
   \ 'insertstr': 'alti#insertstr_posttab_annotation', 'canceled': 's:default_canceled', 'submitted': 's:default_submitted',
-  \ 'append_cmplsep': 1, 'type_multibyte': 0, 'prompt_hl': 'Comment'}
+  \ 'append_cmplsep': 1, 'prompt_hl': 'Comment'}
 function! alti#init(define, ...) "{{{
   if has_key(s:, 'cmpwin')| return| end
   let firstmess = a:0 ? substitute(a:1, "^\n", '', '') : ''
@@ -495,18 +492,25 @@ function! alti#init(define, ...) "{{{
   let s:cmpwin = s:newCmpWin(Define)
   let s:prompt = s:newPrompt(Define, firstmess)
   let s:argleadsholder = s:newArgleadsHolder(Define)
-  call s:_mapping_input()
-  call s:_mapping_term_arrowkeys()
-  call s:_mapping_prtmaps()
+
   if g:alti_enable_statusline
     let s:stlmgr = s:newStlMgr(Define)
   end
   call s:cmpwin.update_candidates()
   call s:cmpwin.buildview()
   call s:prompt.echo()
-  if Define.type_multibyte
-    call s:_keyloop()
-  end
+  while has_key(s:, 'prompt')
+    sil! resize +0
+    redraw
+    let inputs = alti#o#lim#ui#keybind(s:prtmaps, {'transit':1, 'expand': 1})
+    if inputs=={}
+      call s:PrtExit()
+    elseif inputs.action!=''
+      exe 'call s:'. inputs.action
+    elseif inputs.surplus !~# "^[\x80[:cntrl:]]"
+      exe printf('call s:PrtAdd(''%s'')', inputs.surplus)
+    end
+  endwhile
 endfunction
 "}}}
 
@@ -578,44 +582,6 @@ function! s:default_canceled(context, input, lastselected) "{{{
 endfunction
 "}}}
 "==================
-function! s:_mapping_input() "{{{
-  let cmd = "nnoremap \<buffer>\<silent>\<k%s> :\<C-u>call \<SID>PrtAdd(\"%s\")\<CR>"
-  for each in range(0, 9)
-    exe printf(cmd, each, each)
-  endfo
-  for [lhs, rhs] in [['Plus', '+'], ['Minus', '-'], ['Divide', '/'], ['Multiply', '*'], ['Point', '.']]
-    exe printf(cmd, lhs, rhs)
-  endfo
-  let cmd = "nnoremap \<buffer>\<silent>\<Char-%d> :\<C-u>call \<SID>PrtAdd(\"%s\")\<CR>"
-  for each in [34, 92, 124]
-    exe printf(cmd, each, escape(nr2char(each), '"|\'))
-  endfo
-  for each in [33, 125, 126] + range(35, 91) + range(93, 123)
-    exe printf(cmd, each, nr2char(each))
-  endfo
-endfunction
-"}}}
-function! s:_mapping_term_arrowkeys() "{{{
-  if (has('termresponse') && v:termresponse=~"\<ESC>") || &term=~?'\vxterm|<k?vt|gnome|screen|linux|ansi'
-    for each in ['\A <up>','\B <down>','\C <right>','\D <left>']
-      exe 'nnoremap <buffer><silent><Esc>['.each
-    endfor
-  end
-endfunction
-"}}}
-function! s:_mapping_prtmaps() "{{{
-  let maps = copy(s:prtmaps)
-  let nop = remove(maps, 'Nop()')
-  for lhs in nop
-    exe 'nnoremap <buffer><silent>' lhs ':<C-u>call <SID>Nop()<CR>'
-  endfor
-  for [key, vals] in items(maps)
-    for lhs in vals
-      exe 'nnoremap <buffer><silent>' lhs ':<C-u>call <SID>'.key.'<CR>'
-    endfor
-  endfor
-endfunction
-"}}}
 let s:TYPE_NUM = type(0)
 function! s:_keyloop() "{{{
   while has_key(s:, 'prompt') && get(s:defines, 'enable_keyloop', 1)
@@ -693,7 +659,7 @@ function! s:_get_cmpwin_opts() "{{{
 endfunction
 "}}}
 function! s:_guicursor_enter() "{{{
-  setl cul gcr=a:block-blinkon0-Cursor
+  setl cul gcr=a:block-blinkon0-NONE t_ve=
 endfunction
 "}}}
 "Prt
@@ -887,7 +853,6 @@ function! s:ToggleType(delta) "{{{
   let s:defines.idx = idx >= s:defines.len ? 0 : idx<0 ? s:defines.len-1 : idx
   let define = s:defines.list[s:defines.idx]
   call extend(define, s:dfl_define, 'keep')
-  let &imdisable = define.type_multibyte ? 0 : 1
   let s:cmpwin.cmplfunc = define.cmpl
   let s:cmpwin.cmplsep = define.append_cmplsep ? ' ' : ''
   let s:cmpwin.insertstr = define.insertstr
@@ -901,12 +866,6 @@ function! s:ToggleType(delta) "{{{
   call s:prompt.echo()
   if g:alti_enable_statusline
     call s:stlmgr.on_type_toggled()
-  end
-  if define.type_multibyte
-    let s:defines.enable_keyloop = 1
-    call s:_keyloop()
-  else
-    let s:defines.enable_keyloop = 0
   end
 endfunction
 "}}}
