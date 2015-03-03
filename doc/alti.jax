@@ -68,9 +68,9 @@ https://github.com/LeafCage/alti.vim
 ------------------------------------------------------------------------------
 変数						*alti-variables*
 
-g:alti_enable					*g:alti_enable*
+g:alti_available				*g:alti_available*
 	既定値: 1
-	altiがインストールされているなら普通は1に定義される。
+	altiがインストールされているなら普通は 1 に定義される。
 	altiを利用するプラグインがaltiが有効かどうかを判断するとき、この値を見
 	て判断することを推奨している。
 	遅延読み込み(lazy)機能があるプラグインマネージャーを使っているなどで、
