@@ -307,7 +307,7 @@ endfunction
 "}}}
 function! s:CmpWin._get_selected_word() "{{{
   let selected = get(self.candidates, self._get_selected_idx(), '')
-  return type(selected)==s:TYPE_DIC ? selected.word : selected
+  return type(selected)==s:TYPE_DIC ? get(selected, 'word', '') : selected
 endfunction
 "}}}
 function! s:CmpWin.get_selected_raw() "{{{
@@ -330,7 +330,7 @@ endfunction
 function! s:CmpWin.buildview() "{{{
   setl ma
   let [candidates, height]= self._get_buildelm()
-  let candidates = type(get(candidates, 0))==s:TYPE_DIC ? map(candidates, 'get(v:val, "view", v:val.word)') : candidates
+  let candidates = type(get(candidates, 0))==s:TYPE_DIC ? map(candidates, 'has_key(v:val, "view") ? v:val.view : get(v:val, "word", "")') : candidates
   sil! exe '%delete _ | resize' height
   call map(candidates, '"> ". v:val')
   call setline(1, candidates)
