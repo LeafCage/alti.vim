@@ -371,7 +371,7 @@ let s:Prompt = {}
 function! s:newPrompt(define, firstmess) "{{{
   exe 'hi link AltIPrtBase' a:define.prompt_hl
   hi link AltIPrtText     Normal
-  hi link AltIPrtCursor   Constant
+  hi link AltIPrtCursor   Cursor
   let obj = {'input': [a:define.default_text, ''], 'prtbasefunc': a:define.prompt, 'submittedfunc': a:define.submitted, 'canceledfunc': a:define.canceled, 'inputline': a:define.default_text, 'static_text': a:define.static_text=='' ? '' : a:define.static_text. ' ', 'firstmess': a:firstmess}
   call extend(obj, s:Prompt, 'keep')
   return obj
@@ -398,10 +398,10 @@ function! s:Prompt.echo() "{{{
   let onpostcurs = matchlist(self.input[1], '^\(.\)\(.*\)')
   let inputs = map([self.input[0], get(onpostcurs, 1, ''), get(onpostcurs, 2, '')], 'escape(v:val, ''"\'')')
   let is_cursorspace = inputs[1]=='' || inputs[1]==' '
-  let [hiactive, hicursor] = ['AltIPrtText', (is_cursorspace? 'AltIPrtBase': 'AltIPrtCursor')]
+  let [hiactive, hicursor] = ['AltIPrtText', (is_cursorspace? 'AltIPrtCursor': 'AltIPrtCursor')]
   exe 'echoh AltIPrtBase| echo "'. escape(prtbase, '"\'). '"'
   exe 'echoh' hiactive '| echon "'. self.static_text. inputs[0]. '"'
-  exe 'echoh' hicursor '| echon "'. (is_cursorspace? '_': inputs[1]). '"'
+  exe 'echoh' hicursor '| echon "'. (is_cursorspace? ' ': inputs[1]). '"'
   exe 'echoh' hiactive '| echon "'. inputs[2].'"| echoh NONE'
 endfunction
 "}}}
