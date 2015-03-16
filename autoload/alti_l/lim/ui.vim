@@ -16,7 +16,7 @@ endfunction
 "}}}
 function! s:_cnvvimkeycodes(str) "{{{
   try
-    let ret = has_key(s:, 'disable_keynotation') ? a:str : alti#o#lim#keynotation#decode(a:str)
+    let ret = has_key(s:, 'disable_keynotation') ? a:str : alti_l#lim#keynotation#decode(a:str)
     return ret
   catch /E117:/
     let s:disable_keynotation = 1
@@ -63,7 +63,7 @@ function! s:Inputs.should_break() "{{{
   end
 endfunction
 "}}}
-function! s:Inputs.get_inputs() "{{{
+function! s:Inputs.get_results() "{{{
   return [self.justmatch, substitute(self.crrinput, '^'.self.justmatch, '', '')]
 endfunction
 "}}}
@@ -77,7 +77,7 @@ endfunction
 
 "=============================================================================
 "Main:
-function! alti#o#lim#ui#select(prompt, choices, ...) "{{{
+function! alti_l#lim#ui#select(prompt, choices, ...) "{{{
   let behavior = a:0 ? a:1 : {}
   if a:choices==[]
     return []
@@ -107,7 +107,7 @@ function! alti#o#lim#ui#select(prompt, choices, ...) "{{{
     end
   endwhile
   redraw!
-  let input = inputs.get_inputs()[0]
+  let input = inputs.get_results()[0]
   return dict[input]
 endfunctio
 "}}}
@@ -158,7 +158,7 @@ function! s:_get_choicesdict(choices, expand_keycodes) "{{{
 endfunction
 "}}}
 
-function! alti#o#lim#ui#keybind(binddefs, ...) "{{{
+function! alti_l#lim#ui#keybind(binddefs, ...) "{{{
   let behavior = a:0 ? a:1 : {}
   let bindacts = s:_get_bindacts(a:binddefs, function(get(behavior, 'expand') ? 's:_expand_keycodes' : 's:_noexpand'))
   let inputs = s:newInputs(keys(bindacts), get(behavior, 'transit'))
@@ -170,7 +170,7 @@ function! alti#o#lim#ui#keybind(binddefs, ...) "{{{
       break
     end
   endwhile
-  let [justmatch, surplus] = inputs.get_inputs()
+  let [justmatch, surplus] = inputs.get_results()
   return {'action': get(bindacts, justmatch, ''), 'surplus': surplus}
 endfunction
 "}}}

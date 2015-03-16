@@ -502,7 +502,7 @@ function! alti#init(define, ...) "{{{
   while has_key(s:, 'prompt')
     sil! resize +0
     redraw
-    let inputs = alti#o#lim#ui#keybind(s:prtmaps, {'transit':1, 'expand': 1})
+    let inputs = alti_l#lim#ui#keybind(s:prtmaps, {'transit':1, 'expand': 1})
     if inputs=={}
       call s:PrtExit()
     elseif inputs.action!=''
