@@ -71,10 +71,15 @@ https://github.com/LeafCage/alti.vim
 g:alti_available				*g:alti_available*
 	既定値: 1
 	altiがインストールされているなら普通は 1 に定義される。
-	altiを利用するプラグインがaltiが有効かどうかを判断するとき、
-	|after-directory|以下のスクリプトからこの値を見て判断することを推奨し
-	ている。
-	遅延読み込み(lazy)機能があるプラグインマネージャーを使っているなどで、
+	altiを利用するプラグインのうち、alti.vimがインストールされていないとき
+	には Altiコマンドを定義しないものは、|after-directory|以下のスクリプト
+	からこの値を見て判断することを推奨している。 >
+	" after/plugin/foo.vim
+	if get(g:, 'alti_available')
+	  command! AltiFoo    call ctrlp#init(foo#alti#define())
+	endif
+
+<	遅延読み込み(lazy)機能があるプラグインマネージャーを使っているなどで、
 	altiを遅延読み込み設定している場合は、ユーザがvimrcなどでこの値を1に定
 	義する必要がある。
 
@@ -85,7 +90,7 @@ g:alti_cache_dir				*g:alti_cache_dir*
 
 
 g:alti_max_history				*g:alti_max_history*
-	既定値: 'history'
+	既定値: &history
 	記録する履歴の数。標準では'history'オプションの設定に等しい。
 
 
@@ -403,8 +408,8 @@ TODO						*alti-todo*
 - ハイライトをもう少しどうにかしたい。
 - エントリの削除やソートというアクションの実装
 - デフォルトキーマッピングの見直し
--- <C-z>(<C-s>)<C-x>ソート (is_sortableオプションを付ける (cmpl関数でそういう
-			アクションがあったことを受け取らせる))
+	- <C-z>(<C-s>)<C-x>ソート (is_sortableオプションを付ける (cmpl関数でそ
+	ういうアクションがあったことを受け取らせる))
 - ヴァーチャルなinputline
 - 区切り文字(<Space>)でPrtSelectInsertを兼用
 
