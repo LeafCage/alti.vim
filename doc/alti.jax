@@ -115,52 +115,105 @@ g:alti_cmpl_window				*g:alti_match_window*
 		results:{n} - (default: max:{n}と同じ値が使われる)
 
 
+g:alti_default_mappings_base			*g:alti_default_mappings_base*
+	既定値: "standard"
+	altiバッファ内で利用されるキーマッピングのベースを選択する。
+	値として "standard" か "ctrlplike" を選択できる。
+		standard	alti の操作に適したキーマッピング
+		ctrlplike	|ctrlp.vim|の標準に似せたキーマッピング
+	無効な値を指定した場合は "standard" が使用される。
+	|g:alti_prompt_mappings|でベースとなったマッピングをさらに書き換えるこ
+	とができる。
+	ベースとなるキーマッピングとその説明は以下の通り。
+
+						*alti-default-key-mappings*
+	PrtBS()			入力をカーソル前方1文字削除
+		standard :		['<BS>', '<C-h>']
+		ctrlplike :		['<BS>', '<C-]>']
+	PrtDelete()		入力をカーソル後方1文字削除
+		standard :		['<Del>', '<C-d>']
+		ctrlplike :		['<Del>']
+	PrtDeleteWord()		入力の1単語を削除
+		standard :		['<C-w>']
+		ctrlplike :		['<C-w>']
+	PrtClear()		入力をクリアする
+		standard :		['<C-u>']
+		ctrlplike :		['<C-u>']
+	PrtInsertReg()		レジスタ挿入モードになる
+				|g:alti_getreg_mappings|参照
+		standard :		['<C-r>']
+		ctrlplike :		['<C-r>', '<C-\>']
+	PrtHistory(-1)		履歴を先に進める
+		standard :		['<C-x><C-n>']
+		ctrlplike :		['<C-n>']
+	PrtSmartHistory(-1)	履歴を先に進めるが、進められなければ、選択候補
+				を入力欄に挿入
+		standard :		[]
+		ctrlplike :		[]
+	PrtHistory(1)		履歴を前に遡る
+		standard :		['<C-x><C-p>']
+		ctrlplike :		['<C-p>']
+	PrtCurStart()		入力欄の先頭へ
+		standard :		['<C-a>']
+		ctrlplike :		['<C-a>']
+	PrtCurEnd()		入力欄の末尾へ
+		standard :		['<C-e>']
+		ctrlplike :		['<C-e>']
+	PrtCurLeft()		入力欄カーソルを左へ
+		standard :		['<C-b>', '<Left>']
+		ctrlplike :		['<C-h>', '<Left>']
+	PrtCurRight()		入力欄カーソルを右へ
+		standard :		['<C-f>', '<Right>']
+		ctrlplike :		['<C-l>', '<Right>']
+	PrtPage(1)	候補が多すぎて窓に入らないとき、次のページへとめくる
+		standard :		['<C-j>', '<PageDown>', '<kPageDown>']
+		ctrlplike :		['<PageDown>', '<kPageDown>']
+	PrtPage(-1)	候補が多すぎて窓に入らないとき、前のページへとめくる
+		standard :		['<C-k>', '<PageUp>', '<kPageUp>']
+		ctrlplike :		['<PageUp>', '<kPageUp>']
+	PrtSelectMove("j")	候補窓の選択を1つ下へ
+		standard :		['<C-n>', '<Down>']
+		ctrlplike :		['<C-j>', '<Down>']
+	PrtSelectMove("k")	候補窓の選択を1つ上へ
+		standard :		['<C-p>', '<Down>']
+		ctrlplike :		['<C-j>', '<Down>']
+	PrtSelectMove("t")	候補窓の先頭へ
+		standard :		['<Home>', '<kHome>']
+		ctrlplike :		['<Home>', '<kHome>']
+	PrtSelectMove("b")	候補窓の末尾へ
+		standard :		['<End>', '<End>']
+		ctrlplike :		['<End>', '<End>']
+	PrtSelectInsert()	選択候補を入力欄へ挿入
+		standard :		['<Tab>']
+		ctrlplike :		['<Tab>']
+	PrtExit()		キャンセルしてalti終了
+		standard :		['<Esc>', '<C-c>']
+		ctrlplike :		['<Esc>', '<C-c>']
+	PrtSubmit()		確定してalti終了
+		standard :		['<CR>']
+		ctrlplike :		['<CR>']
+	ToggleType(1)	複数のタイプを持つ定義のタイプを次のタイプに切り替える
+		standard :		['<C-x><C-f>', '<C-]>', '<C-Down>']
+		ctrlplike :		['<C-f>', '<C-Down>']
+	ToggleType(-1)	複数のタイプを持つ定義のタイプを前のタイプに切り替える
+		standard :		['<C-x><C-b>', '<C-\>', '<C-Up>']
+		ctrlplike :		['<C-b>', '<C-Up>']
+
+
 g:alti_prompt_mappings				*g:alti_prompt_mappings*
-	altiの標準キーマップを定義する。1ショットのマップしか定義できないこと
-	に注意。 |g:ctrlp_prompt_mappings|に似せている。
+	キーにキーマップ名、値にキーマッピング文字列のリストを指定した辞書で、
+	|g:alti_default_mappings_base|で定義されたキーマッピングを上書きする。
 	Example: >
+	let g:alti_default_mappings_base = 'ctrlplike'
 	let g:alti_prompt_mappings = {
-	  \ 'PrtBS()': ['<BS>', '<C-]>', '<C-h>'],
-	  \ 'PrtCurLeft()': ['<Left>', '<C-b>'],
-	  \ 'PrtCurRight()': ['<Right>', '<C-f>'],
-	  \ 'PrtPageNext()': ['<C-v>'],
-	  \ 'PrtPagePrevious()': ['<C-y>', '<C-l>', '<C-o>'],
+	  \ 'PrtBS()': ['<BS>', '<C-h>'],
+	  \ 'PrtPage(1)': ['<C-f>', '<PageDown>', '<kPageDown>'],
+	  \ 'PrtPage(-1)': ['<C-b>', '<PageUp>', '<kPageUp>'],
+	  \ 'ToggleType(1)': ['<C-]>', '<C-Down>'],
+	  \ 'ToggleType(-1)': ['<C-\>', '<C-Up>'],
 	  \ 'PrtExit()': ['<Esc>', '<C-c>', '<C-g>', '<C-q>'],
 	  \ }
 <
-						*alti-default-key-mappings*
-	以下は標準で定義されるものである。 >
- {
- \ 'PrtBS()': ['<BS>', '<C-]>'],		入力を1文字バックスペース
- \ 'PrtDelete()': ['<Del>', '<C-d>'],		入力を1文字デリート
- \ 'PrtDeleteWord()': ['<C-w>'],		入力の1単語を削除
- \ 'PrtClear()': ['<C-u>'],			入力をクリアする
- \ 'PrtInsertReg()': ['<C-r>'],			レジスタ挿入モードになる(後述)
- \ 'PrtHistory(-1)': [],			履歴を先に進める
- \ 'PrtSmartHistory(-1)': ['<C-n>'],		履歴を先に進めるが、進められな
-						ければ、選択候補を入力欄に挿入
- \ 'PrtHistory(1)': ['<C-p>'],			履歴を前に遡る
- \ 'PrtCurStart()': ['<C-a>'],			入力欄の先頭へ
- \ 'PrtCurEnd()': ['<C-e>'],			入力欄の末尾へ
- \ 'PrtCurLeft()': ['<C-h>', '<Left>'],		入力欄カーソルを左へ
- \ 'PrtCurRight()': ['<C-l>', '<Right>'],	入力欄カーソルを右へ
- \ 'PrtPage(1)': ['<C-v>', '<PageDown>', '<kPageDown>']
-			候補が多すぎて窓に入らないとき、次のページへとめくる
- \ 'PrtPage(-1)': ['<C-t>', '<PageUp>', '<kPageUp>']
-			候補が多すぎて窓に入らないとき、前のページへとめくる
- \ 'PrtSelectMove("j")': ['<C-j>', '<Down>'],		候補窓の選択を1つ下へ
- \ 'PrtSelectMove("k")': ['<C-k>', '<Up>'],		候補窓の選択を1つ上へ
- \ 'PrtSelectMove("t")': ['<Home>', '<kHome>'],		候補窓の先頭へ
- \ 'PrtSelectMove("b")': ['<End>', '<kEnd>'],		候補窓の末尾へ
- \ 'PrtSelectInsert()': ['<Tab>'],			選択候補を入力欄へ挿入
- \ 'PrtExit()': ['<Esc>', '<C-c>', '<C-g>'],		キャンセルしてalti終了
- \ 'PrtSubmit()': ['<CR>', '<2-LeftMouse>'],		確定してalti終了
- \ 'ToggleType(1)': ['<C-f>', '<C-_>', '<C-Down>']
-		複数のタイプを持つ定義のタイプを次のタイプに切り替える
- \ 'ToggleType(-1)': ['<C-b>', '<C-]>', '<C-^>', '<C-Up>']
-		複数のタイプを持つ定義のタイプを前のタイプに切り替える
- \ }
-
 
 g:alti_getreg_mappings				*g:alti_getreg_mappings*
 	レジスタ挿入モード(標準では<C-r>)で利用できるマッピング。

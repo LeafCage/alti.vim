@@ -11,39 +11,6 @@ let s:enable_autocmd = 1
 "--------------------------------------
 let s:TYPE_DIC = type({})
 
-let s:prtmaps = {}
-let s:prtmaps['PrtBS()'] = ['<BS>', '<C-]>']
-let s:prtmaps['PrtDelete()'] = ['<Del>', '<C-d>']
-let s:prtmaps['PrtDeleteWord()'] = ['<C-w>']
-let s:prtmaps['PrtClear()'] = ['<C-u>']
-let s:prtmaps['PrtInsertReg()'] = ['<C-r>']
-let s:prtmaps['PrtHistory(-1)'] = ['<C-n>']
-let s:prtmaps['PrtSmartHistory(-1)'] = []
-let s:prtmaps['PrtHistory(1)'] = ['<C-p>']
-let s:prtmaps['PrtCurStart()'] = ['<C-a>']
-let s:prtmaps['PrtCurEnd()'] = ['<C-e>']
-let s:prtmaps['PrtCurLeft()'] = ['<C-h>', '<Left>']
-let s:prtmaps['PrtCurRight()'] = ['<C-l>', '<Right>']
-let s:prtmaps['PrtPage(1)'] = ['<C-v>', '<PageDown>', '<kPageDown>']
-let s:prtmaps['PrtPage(-1)'] = ['<C-o>', '<PageUp>', '<kPageUp>']
-let s:prtmaps['PrtSelectMove("j")'] = ['<C-j>', '<Down>']
-let s:prtmaps['PrtSelectMove("k")'] = ['<C-k>', '<Up>']
-let s:prtmaps['PrtSelectMove("t")'] = ['<Home>', '<kHome>']
-let s:prtmaps['PrtSelectMove("b")'] = ['<End>', '<kEnd>']
-let s:prtmaps['PrtInsertSelection()'] = ['<Tab>']
-let s:prtmaps['PrtInsertSelection("\<Space>")'] = ['<Space>']
-let s:prtmaps['PrtDetailSelection()'] = ['<C-g>']
-let s:prtmaps['PrtActSelection("z")'] = ['<C-z>', '<C-s>']
-let s:prtmaps['PrtActSelection("x")'] = ['<C-x>']
-let s:prtmaps['PrtActSelection("t")'] = ['<C-t>']
-let s:prtmaps['PrtExit()'] = ['<Esc>', '<C-c>']
-let s:prtmaps['PrtSubmit()'] = ['<CR>']
-let s:prtmaps['ToggleType(1)'] = ['<C-f>', '<C-_>', '<C-Down>']
-let s:prtmaps['ToggleType(-1)'] = ['<C-b>', '<C-]>', '<C-^>', '<C-Up>']
-
-call extend(s:prtmaps, get(g:, 'alti_prompt_mappings', {}))
-call filter(s:prtmaps, 'v:val!=[]')
-
 let s:getreg_maps = {}
 let s:getreg_maps['expr'] = ['=']
 let s:getreg_maps['<cword>'] = ['<C-w>']
@@ -492,6 +459,14 @@ function! alti#init(define, ...) "{{{
   let s:cmpwin = s:newCmpWin(Define)
   let s:prompt = s:newPrompt(Define, firstmess)
   let s:argleadsholder = s:newArgleadsHolder(Define)
+  try
+    let mappings = g:alti#mappings#{g:alti_default_mappings_base}#define
+  catch /E121/
+    echoerr 'invalid value of g:alti_default_mappings_base: '. g:alti_default_mappings_base
+    let mappings = g:alti#mappings#standard#define
+  endtry
+  let mappings = extend(copy(mappings), get(g:, 'alti_prompt_mappings', {}))
+  call filter(mappings, 'v:val!=[]')
 
   if g:alti_enable_statusline
     let s:stlmgr = s:newStlMgr(Define)
@@ -502,11 +477,14 @@ function! alti#init(define, ...) "{{{
   while has_key(s:, 'prompt')
     sil! resize +0
     redraw
-    let inputs = alti_l#lim#ui#keybind(s:prtmaps, {'transit':1, 'expand': 1})
+    let inputs = alti_l#lim#ui#keybind(mappings, {'transit':1, 'expand': 1})
     if inputs=={}
       call s:PrtExit()
     elseif inputs.action!=''
-      exe 'call s:'. inputs.action
+      try
+        exe 'call s:'. inputs.action
+      catch /E1[01]7/
+      endtry
     elseif inputs.surplus !~# "^[\x80[:cntrl:]]"
       exe printf('call s:PrtAdd(''%s'')', inputs.surplus)
     end
