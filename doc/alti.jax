@@ -99,25 +99,21 @@ g:alti_enable_statusline			*g:alti_enable_statusline*
 	非0 なら専用のステータスラインを使う。
 
 
-g:alti_cmpl_window				*g:alti_match_window*
-	補完窓に関する設定はこの変数の文字列で行う。
-	窓の位置（上か下か）、候補の並び（上から下か下から上か）、窓の最大高、
-	最小高、候補の最大値を決定する。 |g:ctrlp_match_window|に似せている。
-	設定されていない値については標準の値が利用される。
-	Example: >
-	let g:alti_cmpl_window = 'bottom,order:btt,min:1,max:10,results:10'
-<
-	窓の位置: (default: bottom)
-		top / bottom という文字列が含まれていたらそのように設定される。
-	候補の並び: (default: ttb)
-		order:ttb - 上から下へ top to bottom
-		order:btt - 下から上へ bottom to top
-		ctrlpと違って上から下が標準なので注意。
-	窓の高さ:
-		min:{n} - 最小の高さ (default: 1)
-		max:{n} - 最大の高さ (default: 10)
-	候補の最大数(廃止予定?):
-		results:{n} - (default: max:{n}と同じ値が使われる)
+g:alti_cmpl_window				*g:alti_cmpl_window*
+	この辞書によって補完ウィンドウに関する設定する。
+	以下のキーを持つことができる。
+	--------~
+	pos		(文字列)
+		ウィンドウの表示位置を "top" か "bottom" で指定できる。
+		省略時には "bottom" が利用される。
+	order		(文字列)
+		候補の並びを "ttb" (上から下へ top to bottom) か "btt" (下から
+		上へ bottom to top) で指定する。
+		省略時には "ttb" が利用される。
+	min_height	(数値)
+		ウィンドウの最小の高さ。デフォルトでは 1 が利用される。
+	max_height	(数値)
+		ウィンドウの最大の高さ。デフォルトでは 10 が利用される。
 
 
 g:alti_default_mappings_base			*g:alti_default_mappings_base*

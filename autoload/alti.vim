@@ -189,7 +189,7 @@ endfunction
 let s:CmpWin = {}
 function! s:newCmpWin(define) "{{{
   let restcmds = {'winrestcmd': winrestcmd(), 'lines': &lines, 'winnr': winnr('$')}
-  let cw_opts = s:_get_cmpwin_opts()
+  let cw_opts = s:_get_cw_opts()
   let s:enable_autocmd = 0
   silent! exe 'keepalt' (cw_opts.pos=='top' ? 'topleft' : 'botright') '1new :[AltI]'
   let s:enable_autocmd = 1
@@ -218,7 +218,7 @@ endfunction
 "}}}
 function! s:CmpWin._set_page() "{{{
   let self.candidates_len = len(self.candidates)
-  let height = min([max([self.cw.min, self.candidates_len]), self.cw.max, &lines])
+  let height = min([max([self.cw.min_height, self.candidates_len]), self.cw.max_height, &lines])
   let self.lastpage = (self.candidates_len-1) / height + 1
   let self.page = self.page > self.lastpage ? self.lastpage : self.page
   if g:alti_enable_statusline
@@ -619,20 +619,13 @@ endfunction
 "s:cmpwin
 let s:CWMAX = 10
 let s:CWMIN = 1
-function! s:_get_cmpwin_opts() "{{{
+function! s:_get_cw_opts() "{{{
   if !has_key(g:, 'alti_cmpl_window')
-    return {'pos': 'bottom', 'order': 'ttb', 'max': s:CWMAX, 'min': s:CWMIN, 'resultslimit': min([s:CWMAX, &lines])}
+    return {'pos': 'bottom', 'order': 'ttb', 'max_height': s:CWMAX, 'min_height': s:CWMIN}
   end
-  let ret = {}
-  let cmpl_window = g:alti_cmpl_window
-  let ret.pos = cmpl_window=~'top\|bottom' ? matchstr(cmpl_window, 'top\|bottom') : 'bottom'
-  let ret.order = cmpl_window=~'order:[^,]\+' ? matchstr(cmpl_window, 'order:\zs[^,]\+') : 'ttb'
-  let ret.max = cmpl_window=~'max:[^,]\+' ? str2nr(matchstr(cmpl_window, 'max:\zs\d\+')) : s:CWMAX
-  let ret.min = cmpl_window=~'min:[^,]\+' ? str2nr(matchstr(cmpl_window, 'min:\zs\d\+')) : s:CWMIN
-  let [ret.max, ret.min] = [max([ret.max, 1]), max(ret.min, 1)]
+  let ret = extend({'pos': 'bottom', 'order': 'ttb', 'max_height': s:CWMAX, 'min_height': s:CWMIN}, g:alti_cmpl_window)
+  let [ret.max, ret.min] = [max([ret.max, 1]), max([ret.min, 1])]
   let ret.min = min([ret.min, ret.max])
-  let ret.resultslimit = cmpl_window=~'results:[^,]\+' ? str2nr(matchstr(cmpl_window, 'results:\zs\d\+')) : min([ret.max, &lines])
-  let ret.resultslimit = max([ret.results, 1])
   return ret
 endfunction
 "}}}
