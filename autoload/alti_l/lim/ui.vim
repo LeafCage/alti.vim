@@ -28,7 +28,18 @@ endfunction
 let s:Inputs = {}
 function! s:newInputs(keys, ...) "{{{
   let obj = copy(s:Inputs)
-  let obj.is_transit = a:0 ? a:1 : 0
+  if a:0
+    let obj.is_transit = get(a:1, 'transit')
+    let async = get(a:1, 'async', {})
+    let asyncfunc = get(async, 'func', [])
+    let _ = len(asyncfunc)
+    if type(asyncfunc)==s:TYPE_LIST && (_==2 || _==3)
+      let obj.asyncfunc = asyncfunc
+      let obj.asynctime = get(async, 'time', 0.5)
+    end
+  else
+    let obj.is_transit = 0
+  end
   let obj.neutral_keys = a:keys
   let obj.keys = copy(a:keys)
   let obj.crrinput = ''
@@ -37,15 +48,29 @@ function! s:newInputs(keys, ...) "{{{
 endfunction
 "}}}
 function! s:Inputs.receive() "{{{
-  let _ = getchar()
-  let char = type(_)==s:TYPE_STR ? _ : nr2char(_)
+  let base_time = reltime()
+  while 1
+    let _ = getchar(0)
+    if _==s:TYPE_STR || _
+      break
+    elseif has_key(self, 'asyncfunc') && str2float(reltimestr(reltime(base_time))) >= self.asynctime
+      call call('call', self.asyncfunc)
+      let base_time= reltime()
+    end
+  endwhile
+  let input = type(_)==s:TYPE_STR ? _ : nr2char(_)
+  let self.crrinput .= input
+  call filter(self.keys, 'stridx(v:val, self.crrinput)==0')
+  let self.justmatch = index(self.keys, self.crrinput)==-1 ? self.justmatch : self.crrinput
   while getchar(1)
     let _ = getchar()
-    let char .= type(_)==s:TYPE_STR ? _ : nr2char(_)
+    let char = type(_)==s:TYPE_STR ? _ : nr2char(_)
+    let input .= char
+    let self.crrinput .= char
+    call filter(self.keys, 'stridx(v:val, self.crrinput)==0')
+    let self.justmatch = index(self.keys, self.crrinput)==-1 ? self.justmatch : self.crrinput
   endwhile
-  let self.crrinput .= char
-  call filter(self.keys, 'stridx(v:val, self.crrinput)==0')
-  return char
+  return input
 endfunction
 "}}}
 function! s:Inputs.should_break() "{{{
@@ -55,10 +80,11 @@ function! s:Inputs.should_break() "{{{
     end
     call self._reset()
     return 0
+  elseif index(self.keys, self.crrinput)==-1
+    return 0
   end
-  let justmatchidx = index(self.keys, self.crrinput)
-  let self.justmatch = justmatchidx==-1 ? self.justmatch : self.crrinput
-  if justmatchidx!=-1 && len(self.keys)==1
+  let self.justmatch = self.crrinput
+  if len(self.keys)==1
     return 1
   end
 endfunction
@@ -161,7 +187,7 @@ endfunction
 function! alti_l#lim#ui#keybind(binddefs, ...) "{{{
   let behavior = a:0 ? a:1 : {}
   let bindacts = s:_get_bindacts(a:binddefs, function(get(behavior, 'expand') ? 's:_expand_keycodes' : 's:_noexpand'))
-  let inputs = s:newInputs(keys(bindacts), get(behavior, 'transit'))
+  let inputs = s:newInputs(keys(bindacts), behavior)
   while 1
     let char = inputs.receive()
     if !has_key(bindacts, "\<C-c>") && char=="\<C-c>"
