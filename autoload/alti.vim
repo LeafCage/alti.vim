@@ -202,7 +202,7 @@ function! s:newCmpWin(define) "{{{
   call s:_guicursor_enter()
   sil! exe 'hi AltILinePre '.( has("gui_running") ? 'gui' : 'cterm' ).'fg=bg'
   sy match AltILinePre '^>'
-  let obj = {'rest': restcmds, 'cw': cw_opts, 'cmplfunc': a:define.cmpl, 'cmplsep': a:define.append_cmplsep ? ' ' : '', 'insertstr': a:define.insertstr, 'candidates': [], 'page': 1, 'lastpage': 1, 'candidates_len': 0,}
+  let obj = {'rest': restcmds, 'cw': cw_opts, 'cmplfunc': a:define.cmpl, 'cmplsep': a:define.append_sep ? ' ' : '', 'insertstr': a:define.insertstr, 'candidates': [], 'page': 1, 'lastpage': 1, 'candidates_len': 0,}
   call extend(obj, s:CmpWin, 'keep')
   return obj
 endfunction
@@ -439,7 +439,7 @@ endfunction
 "Main:
 let s:dfl_define = {'name': '', 'default_text': '', 'static_text': '', 'prompt': 's:default_prompt', 'cmpl': 's:default_cmpl',
   \ 'insertstr': 'alti#insertstr_posttab_annotation', 'canceled': 's:default_canceled', 'submitted': 's:default_submitted',
-  \ 'append_cmplsep': 1, 'prompt_hl': 'Comment'}
+  \ 'append_sep': 1, 'prompt_hl': 'Comment'}
 function! alti#init(define, ...) "{{{
   if has_key(s:, 'cmpwin')| return| end
   let firstmess = a:0 ? substitute(a:1, "^\n", '', '') : ''
@@ -825,7 +825,7 @@ function! s:ToggleType(delta) "{{{
   let define = s:defines.list[s:defines.idx]
   call extend(define, s:dfl_define, 'keep')
   let s:cmpwin.cmplfunc = define.cmpl
-  let s:cmpwin.cmplsep = define.append_cmplsep ? ' ' : ''
+  let s:cmpwin.cmplsep = define.append_sep ? ' ' : ''
   let s:cmpwin.insertstr = define.insertstr
   let s:prompt.prtbasefunc = define.prompt
   let s:prompt.submittedfunc = define.submitted

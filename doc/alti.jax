@@ -260,11 +260,11 @@ alti#init({define}, [{firstmessage}, [{bind}]])
 	static_text  (文字列) :			*alti-define-static_text*
 		default_textと似ているが削除されない。ユーザ定義コマンド用の補
 		完関数をそのまま利用するときに使う。既定では空文字である。
-	enter (関数の参照･グローバル関数名) :	*alti-define-enter*
+	enter (関数の参照･グローバル関数名) :		*alti-define-enter*
 		alti開始前の、AltIバッファに移る前に呼ばれる関数である。
 		元いたバッファの値を利用するときにこの関数内で取得するとよい。
 		引数は取らない。
-	cmpl (関数の参照･グローバル関数名) :	*alti-define-cmpl*
+	cmpl (関数の参照･グローバル関数名) :		*alti-define-cmpl*
 		1つの引数{context}(辞書)|alti-context|を取り、補完窓に表示させ
 		る内容のリスト型を返す関数である。
 		返値であるリストは、要素が文字列か辞書である。が、文字列である
@@ -330,9 +330,9 @@ alti#init({define}, [{firstmessage}, [{bind}]])
 	canceled (関数の参照･グローバル関数名) :	*alti-define-canceled*
 		キャンセルされた後に呼ばれる関数。submittedと同じく引数を2つ取
 		る。内容はsubmittedのものと同じである。既定関数は何もしない。
-	append_cmplsep (数値) :			*alti-define-append_cmplsep*
+	append_sep (数値) :			*alti-define-append_sep*
 		非0なら、補完時に自動で空白を挟む。既定値は1である。
-	bind (辞書) :				*alti-define-bind*
+	bind (辞書) :					*alti-define-bind*
 		alti内部で実行されるユーザ定義辞書の"self"にこれが代入されるよ
 		うになる。既定値は空の辞書 {} 。
 		|alti#init()|の第三引数 {bind} が同時に渡されていた場合は、両
