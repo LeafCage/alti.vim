@@ -123,11 +123,57 @@ g:alti_default_mappings_base			*g:alti_default_mappings_base*
 		standard	alti の操作に適したキーマッピング
 		ctrlplike	|ctrlp.vim|の標準に似せたキーマッピング
 	無効な値を指定した場合は "standard" が使用される。
+	ベースとなるキーマッピングとその説明は|alti-key-mappings|を参照。
 	|g:alti_prompt_mappings|でベースとなったマッピングをさらに書き換えるこ
 	とができる。
-	ベースとなるキーマッピングとその説明は以下の通り。
 
-						*alti-default-key-mappings*
+
+g:alti_prompt_mappings				*g:alti_prompt_mappings*
+	キーにキーマップ名、値にキーマッピング文字列のリストを指定した辞書で、
+	|alti-key-mappings|で定義されたキーマッピングを上書きする。
+	値に空リストを定義すると、そのキーマッピングは無効となる。
+	Example: >
+	let g:alti_default_mappings_base = 'ctrlplike'
+	let g:alti_prompt_mappings = {
+	  \ 'PrtBS()': ['<BS>', '<C-h>'],
+	  \ 'PrtPage(1)': ['<C-f>', '<PageDown>', '<kPageDown>'],
+	  \ 'PrtPage(-1)': ['<C-b>', '<PageUp>', '<kPageUp>'],
+	  \ 'ToggleType(1)': ['<C-]>', '<C-Down>'],
+	  \ 'ToggleType(-1)': ['<C-\>', '<C-Up>'],
+	  \ 'PrtExit()': ['<Esc>', '<C-c>', '<C-g>', '<C-q>'],
+	  \ }
+<
+
+g:alti_getreg_mappings				*g:alti_getreg_mappings*
+	レジスタ挿入モード(標準では<C-r>)で利用できるマッピング。
+	通常ここで任意の一文字を入力することでその文字のレジスタを挿入できる。
+	しかしここで特殊な文字に特定のレジスタを充てることも可能。
+	Example: >
+	let g:alti_getreg_mappings = {}
+	let g:alti_getreg_mappings['"'] = ['<C-e>']
+	let g:alti_getreg_mappings['*'] = ['<C-y>']
+
+<	この例の場合<C-r>の後の<C-e>で レジスタ " が、<C-y>で レジスタ * が挿
+	入される。また、以下の特殊キーがセットされている。 >
+ {
+ \ 'expr': ['='],		<C-r>= Expressionレジスタのように、入力を評価
+				しその結果を挿入する。
+ \ '<cword>: ['<C-w>'],		<C-r><C-w> 事前のカーソル位置の単語を挿入する
+ \ '<cWORD>': ['<C-a>'],	<C-r><C-a> 事前のカーソル位置のWORDを挿入する
+ \ '<cfile>': ['<C-p>'],	<C-r><C-p> 'path'を使って展開された事前のカー
+				ソル位置のファイル名 (gfで編集するものと同様)
+ \ }
+
+
+------------------------------------------------------------------------------
+キーマッピング					*alti-key-mappings*
+
+	altiバッファ内で標準で定義されるキーマッピングの名称と説明である。
+	|g:alti_default_mappings_base|に "standard" か "ctrlplike" を定義する
+	ことで標準のキーマッピングを選択することが出来る。
+	また、|g:alti_prompt_mappings|で標準で定義されたキーマッピングを上書き
+	することが出来る。
+
 	PrtBS()			入力をカーソル前方1文字削除
 		standard :		['<BS>', '<C-h>']
 		ctrlplike :		['<BS>', '<C-]>']
@@ -166,10 +212,10 @@ g:alti_default_mappings_base			*g:alti_default_mappings_base*
 	PrtCurRight()		入力欄カーソルを右へ
 		standard :		['<C-f>', '<Right>']
 		ctrlplike :		['<C-l>', '<Right>']
-	PrtPage(1)	候補が多すぎて窓に入らないとき、次のページへとめくる
+	PrtPage(1)	候補が多すぎて窓に入り切らないとき、次ページへとめくる
 		standard :		['<C-j>', '<PageDown>', '<kPageDown>']
 		ctrlplike :		['<PageDown>', '<kPageDown>']
-	PrtPage(-1)	候補が多すぎて窓に入らないとき、前のページへとめくる
+	PrtPage(-1)	候補が多すぎて窓に入り切らないとき、前ページへとめくる
 		standard :		['<C-k>', '<PageUp>', '<kPageUp>']
 		ctrlplike :		['<PageUp>', '<kPageUp>']
 	PrtSelectMove("j")	候補窓の選択を1つ下へ
@@ -201,48 +247,6 @@ g:alti_default_mappings_base			*g:alti_default_mappings_base*
 		ctrlplike :		['<C-b>', '<C-Up>']
 
 
-g:alti_prompt_mappings				*g:alti_prompt_mappings*
-	キーにキーマップ名、値にキーマッピング文字列のリストを指定した辞書で、
-	|g:alti_default_mappings_base|で定義されたキーマッピングを上書きする。
-	Example: >
-	let g:alti_default_mappings_base = 'ctrlplike'
-	let g:alti_prompt_mappings = {
-	  \ 'PrtBS()': ['<BS>', '<C-h>'],
-	  \ 'PrtPage(1)': ['<C-f>', '<PageDown>', '<kPageDown>'],
-	  \ 'PrtPage(-1)': ['<C-b>', '<PageUp>', '<kPageUp>'],
-	  \ 'ToggleType(1)': ['<C-]>', '<C-Down>'],
-	  \ 'ToggleType(-1)': ['<C-\>', '<C-Up>'],
-	  \ 'PrtExit()': ['<Esc>', '<C-c>', '<C-g>', '<C-q>'],
-	  \ }
-<
-
-g:alti_getreg_mappings				*g:alti_getreg_mappings*
-	レジスタ挿入モード(標準では<C-r>)で利用できるマッピング。
-	通常ここで任意の一文字を入力することでその文字のレジスタを挿入できる。
-	しかしここで特殊な文字に特定のレジスタを充てることも可能。
-	Example: >
-	let g:alti_getreg_mappings = {}
-	let g:alti_getreg_mappings['"'] = ['<C-e>']
-	let g:alti_getreg_mappings['*'] = ['<C-y>']
-
-<	この例の場合<C-r>の後の<C-e>で レジスタ " が、<C-y>で レジスタ * が挿
-	入される。また、以下の特殊キーがセットされている。 >
- {
- \ 'expr': ['='],		<C-r>= Expressionレジスタのように、入力を評価
-				しその結果を挿入する。
- \ '<cword>: ['<C-w>'],		<C-r><C-w> 事前のカーソル位置の単語を挿入する
- \ '<cWORD>': ['<C-a>'],	<C-r><C-a> 事前のカーソル位置のWORDを挿入する
- \ '<cfile>': ['<C-p>'],	<C-r><C-p> 'path'を使って展開された事前のカー
-				ソル位置のファイル名 (gfで編集するものと同様)
- \ }
-
-
-------------------------------------------------------------------------------
-キーマッピング					*alti-key-mappings*
-
-|alti-default-key-mappings|を参照。
-
-
 ------------------------------------------------------------------------------
 関数						*alti-functions*
 
@@ -255,16 +259,21 @@ alti#init({define}, [{firstmessage}, [{bind}]])
 	使われる。(functionにdict属性をつけた場合のみ。詳しくは後述。)
 	定義用の辞書{define}の要素は以下の通り。いずれも省略可能。
 
-	default_text (文字列) :			*alti-define-default_text*
-		開始時に標準で入力されているテキスト。既定では空文字である。
-	static_text  (文字列) :			*alti-define-static_text*
+	default_text	(文字列)		*alti-define-default_text*
+		既定 : ""
+		開始時に標準で入力されているテキスト。
+	static_text	(文字列)		*alti-define-static_text*
+		既定 : ""
 		default_textと似ているが削除されない。ユーザ定義コマンド用の補
-		完関数をそのまま利用するときに使う。既定では空文字である。
-	enter (関数の参照･グローバル関数名) :		*alti-define-enter*
+		完関数をそのまま利用するときに使う。
+	append_sep	(数値)			*alti-define-append_sep*
+		既定 : 1
+		非0なら、補完時に自動で空白を挟む。
+	enter (関数の参照･グローバル関数名)	*alti-define-enter*
 		alti開始前の、AltIバッファに移る前に呼ばれる関数である。
 		元いたバッファの値を利用するときにこの関数内で取得するとよい。
 		引数は取らない。
-	cmpl (関数の参照･グローバル関数名) :		*alti-define-cmpl*
+	cmpl (関数の参照･グローバル関数名)	*alti-define-cmpl*
 		1つの引数{context}(辞書)|alti-context|を取り、補完窓に表示させ
 		る内容のリスト型を返す関数である。
 		返値であるリストは、要素が文字列か辞書である。が、文字列である
@@ -287,12 +296,13 @@ alti#init({define}, [{firstmessage}, [{bind}]])
 		また、|alti-define-insertstr|関数を変更することで候補について
 		の注釈を付加したり高度な補完を実現することが可能。
 		既定関数は空リストを返す。
-	prompt (関数の参照･グローバル関数名) :	*alti-define-prompt*
+	prompt (関数の参照･グローバル関数名)	*alti-define-prompt*
 		|alti-define-cmpl|と同じく1つの引数{context}(辞書)を取り
 		|alti-context|、プロンプト文字列を返す関数である。入力に応じて
 		プロンプトを変化させることが可能になる。既定関数が返すプロンプ
 		ト文字列は ">>> " である。
-	insertstr (関数の参照･グローバル関数名) :	*alti-define-insertstr*
+	insertstr (関数の参照･グローバル関数名)	*alti-define-insertstr*
+		既定 : "alti#insertstr_posttab_annotation" 
 		この関数は2つ引数を取る。1つ目は {context}(辞書)|alti-context|
 		2つ目は {selected}(選ばれた候補文字列) である。
 		選択された候補で補完を実行するとき呼ばれ、補完を完成させる。
@@ -318,7 +328,7 @@ alti#init({define}, [{firstmessage}, [{bind}]])
 		字を挟んで注釈を付けられるようにすることを意図している。標準で
 		insertstr関数として利用できる関数が複数用意されている。
 		詳しくは|alti-insertstr-functions|を参照。
-	submitted (関数の参照･グローバル関数名) :	*alti-define-submitted*
+	submitted (関数の参照･グローバル関数名)	*alti-define-submitted*
 		Submitされた後に呼ばれる関数。2つないし3つ仮引数(パラメータ)が
 		定義され、その数だけの実引数を取る。
 		1つ目は {context}(辞書)|alti-context|である。
@@ -327,14 +337,13 @@ alti#init({define}, [{firstmessage}, [{bind}]])
 		たっていた(挿入されていない)補完候補文字列である。この仮引数は
 		省略することができる。
 		既定関数は入力文字列が空でなければ|:execute|する。
-	canceled (関数の参照･グローバル関数名) :	*alti-define-canceled*
+	canceled (関数の参照･グローバル関数名)	*alti-define-canceled*
 		キャンセルされた後に呼ばれる関数。submittedと同じく引数を2つ取
 		る。内容はsubmittedのものと同じである。既定関数は何もしない。
-	append_sep (数値) :			*alti-define-append_sep*
-		非0なら、補完時に自動で空白を挟む。既定値は1である。
-	bind (辞書) :					*alti-define-bind*
-		alti内部で実行されるユーザ定義辞書の"self"にこれが代入されるよ
-		うになる。既定値は空の辞書 {} 。
+	bind		(辞書)			*alti-define-bind*
+		既定 : {}
+		alti内部で実行されるユーザ定義辞書の "self" にこれが代入される
+		ようになる。
 		|alti#init()|の第三引数 {bind} が同時に渡されていた場合は、両
 		者が合成される。共通のkeyがあった場合は {bind} の方が優先され
 		る。
@@ -350,20 +359,21 @@ alti#init({define}, [{firstmessage}, [{bind}]])
 		function! alti#xxx#cmpl() dict
 		  return map(['a', 'b', 'c'], 'v:val. '.'.self.filetype')
 		endfunction
-
-
-alti#get_arginfo()				*alti#get_arginfo()*
-	cmpl関数などの中で使える、現在の文脈を記した辞書を返す。
-	AltIバッファが存在しないときに呼ぶとエラーになる。
-	要素は以下の通り。
+<
+	コンテキスト情報			*alti-context*
+	|alti#init()|の定義{define}が持つことが出来る関数 cmpl prompt
+	insertstr submitted canceled が引数として受け取るコンテキスト情報は次
+	のキーを持つ辞書である。
+	arglead    : 補完対象の文字列
 	precursor  : カーソルより前の文字列
 	postcursor : カーソルを含むカーソルより後の文字列
 	inputline  : 入力文字列全体
+	args       : 入力された文字列を非エスケープ空白で分割したリスト。
 	cursoridx  : カーソルの位置(バイト単位のインデックス)
-	arglead    : 補完対象の文字列
 	ordinal    : 現在、先頭から何番目の引数の補完を行っているのか。初めは
 	             1から始まる。エスケープされていない空白を区切りと見なす。
-	args       : 入力された文字列を非エスケープ空白で分割したリスト。
+	action     : ??? (NOTE: 今この機能は未実装なので無視してほしい)
+
 
 
 alti#on_insertstr_rm_arglead()		*alti#on_insertstr_rm_arglead()*
