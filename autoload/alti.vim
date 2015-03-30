@@ -11,17 +11,72 @@ let s:enable_autocmd = 1
 "--------------------------------------
 let s:TYPE_DIC = type({})
 
-let s:getreg_maps = {}
-let s:getreg_maps['expr'] = ['=']
-let s:getreg_maps['<cword>'] = ['<C-w>']
-let s:getreg_maps['<cWORD>'] = ['<C-a>']
-let s:getreg_maps['<cfile>'] = ['<C-p>']
-call extend(s:getreg_maps, get(g:, 'alti_getreg_mappings', {}))
-function! s:quotize(mappings) "{{{
-  return map(a:mappings, 'v:val=~"^<.\\+>$" ? eval(substitute(v:val, "^<.\\+>$", ''"\\\0"'', "")) : v:val')
+function! s:get_getreg_mappings() "{{{
+  let ret = {'expr': ['='], '<cword>': ['<C-w>'], '<cWORD>': ['<C-a>'], '<cfile>': ['<C-p>']}
+  call extend(ret, get(g:, 'alti_getreg_mappings', {}))
+  return map(ret, 'alti_l#lim#misc#expand_keycodes(v:val)')
 endfunction
 "}}}
-call map(s:getreg_maps, 's:quotize(v:val)')
+"==================
+function! s:_adjust_cmdheight(str) "{{{
+  let nlcount = s:_get_nlcount(a:str)
+  let &cmdheight = nlcount >= s:glboptholder.get_optval('cmdheight') ? nlcount+1 : s:glboptholder.get_optval('cmdheight')
+endfunction
+"}}}
+function! s:_get_nlcount(str) "{{{
+  return count(split(a:str, '\zs'), "\n")
+endfunction
+"}}}
+"==================
+"s:HistHolder
+function! s:_writecachefile(filename, list) "{{{
+  let dir = expand(g:alti_cache_dir)
+  if !isdirectory(dir)
+    call mkdir(dir, 'p')
+  end
+  call writefile(a:list, dir. '/'. a:filename)
+endfunction
+"}}}
+"s:cmpwin
+let s:CWMAX = 10
+let s:CWMIN = 1
+function! s:_get_cw_opts() "{{{
+  if !has_key(g:, 'alti_cmpl_window')
+    return {'pos': 'bottom', 'order': 'ttb', 'max_height': s:CWMAX, 'min_height': s:CWMIN}
+  end
+  let ret = extend({'pos': 'bottom', 'order': 'ttb', 'max_height': s:CWMAX, 'min_height': s:CWMIN}, g:alti_cmpl_window)
+  let [ret.max, ret.min] = [max([ret.max, 1]), max([ret.min, 1])]
+  let ret.min = min([ret.min, ret.max])
+  return ret
+endfunction
+"}}}
+function! s:_guicursor_enter() "{{{
+  setl cul gcr=a:block-blinkon0-NONE t_ve=
+endfunction
+"}}}
+"Prt
+function! s:_exit_process(funcname) "{{{
+  call s:argleadsholder._update_cursoridx()
+  call s:argleadsholder.update_arglead()
+  let state = extend(alti#get_arginfo(), {'lastselected': s:cmpwin._get_selected_word()})
+  let CanceledFunc = s:prompt.get_exitfunc_elms(a:funcname)
+  call s:cmpwin.close()
+  wincmd p
+  try
+    call call(CanceledFunc, [state, state.inputline, state.lastselected], get(s:, 'funcself', {}))
+  catch /E118/
+    call call(CanceledFunc, [state, state.inputline], get(s:, 'funcself', {}))
+  endtry
+  let save_imd = &imd
+  set imdisable
+  let &imd = save_imd
+  if !has_key(s:, 'cmpwin')
+    unlet! s:funcself
+  end
+endfunction
+"}}}
+
+
 
 "======================================
 let s:HistHolder = {'hists': [], 'idx': 0, 'is_inputsaved': 0}
@@ -44,7 +99,7 @@ function! s:HistHolder.save() "{{{
     return
   end
   call insert(self.hists, str, 1)
-  call s:new_dupliexcluder().filter(self.hists)
+  call alti_l#lim#misc#uniq(self.hists)
   if len(self.hists) > g:alti_max_history
     call remove(self.hists, g:alti_max_history, -1)
   end
@@ -63,7 +118,7 @@ function! s:HistHolder.get_nexthist(delta) "{{{
 endfunction
 "}}}
 call s:HistHolder.load()
-"==================
+
 let s:GlboptHolder = {}
 function! s:newGlboptHolder(define) "{{{
   let obj = copy(s:GlboptHolder)
@@ -85,7 +140,7 @@ function! s:GlboptHolder.untap() "{{{
   unlet s:glboptholder
 endfunction
 "}}}
-"==================
+
 let s:RegHolder = {}
 function! s:newRegHolder() "{{{
   let obj = {'cword': expand('<cword>', 1), 'cWORD': expand('<cWORD>', 1), 'cfile': expand('<cfile>', 1)}
@@ -121,7 +176,7 @@ function! s:RegHolder.expr() "{{{
   endtry
 endfunction
 "}}}
-"==================
+
 let s:StlMgr = {}
 function! s:newStlMgr(define) "{{{
   let obj = {'crrtype': '<'.(a:define.name=='' ? 'Alti'.(s:defines.idx+1) : a:define.name).'>'}
@@ -152,7 +207,7 @@ function! s:StlMgr.on_type_toggled() "{{{
   let &l:stl = printf(self.pat, self.prevtype, self.crrtype, self.nexttype, s:cmpwin.candidates_len, s, s:cmpwin.page, s:cmpwin.lastpage)
 endfunction
 "}}}
-"==================
+
 let s:ArgleadsHolder = {}
 function! s:newArgleadsHolder(define) "{{{
   let obj = {'arglead': '', 'ordinal': 1, 'save_precursor': '', 'cursoridx': strlen(a:define.static_text)+1, 'action': []}
@@ -185,7 +240,7 @@ function! s:ArgleadsHolder._update_cursoridx() "{{{
   endif
 endfunction
 "}}}
-"==================
+
 let s:CmpWin = {}
 function! s:newCmpWin(define) "{{{
   let restcmds = {'winrestcmd': winrestcmd(), 'lines': &lines, 'winnr': winnr('$')}
@@ -333,7 +388,7 @@ function! s:CmpWin.close() "{{{
   unlet! s:cmpwin s:prompt s:regholder s:argleadsholder s:defines s:stlmgr
 endfunction
 "}}}
-"==================
+
 let s:Prompt = {}
 function! s:newPrompt(define, firstmess) "{{{
   exe 'hi link AltIPrtBase' a:define.prompt_hl
@@ -435,227 +490,7 @@ function! s:Prompt.cursor_right() "{{{
 endfunction
 "}}}
 
-"=============================================================================
-"Main:
-let s:dfl_define = {'name': '', 'default_text': '', 'static_text': '', 'prompt': 's:default_prompt', 'cmpl': 's:default_cmpl',
-  \ 'insertstr': 'alti#insertstr_posttab_annotation', 'canceled': 's:default_canceled', 'submitted': 's:default_submitted',
-  \ 'append_sep': 1, 'prompt_hl': 'Comment'}
-function! alti#init(define, ...) "{{{
-  if has_key(s:, 'cmpwin')| return| end
-  let firstmess = a:0 ? substitute(a:1, "^\n", '', '') : ''
-  let s:defines = {'idx': 0}
-  let s:defines.list = type(a:define)!=type([]) ? [a:define] : a:define==[] ? [{}] : a:define
-  let s:defines.len = len(s:defines.list)
-  let Define = s:defines.list[0]
-  call extend(Define, s:dfl_define, 'keep')
-  let s:regholder = s:newRegHolder()
-  let s:funcself = {}
-  for def in s:defines.list
-    call extend(s:funcself, get(def, 'bind', {}))
-  endfor
-  call extend(s:funcself, get(a:, 2, {}))
-  call map(copy(s:defines.list), 'call(get(v:val, "enter", "s:default_enter"), [], s:funcself)')
-  let s:glboptholder = s:newGlboptHolder(Define)
-  let s:cmpwin = s:newCmpWin(Define)
-  let s:prompt = s:newPrompt(Define, firstmess)
-  let s:argleadsholder = s:newArgleadsHolder(Define)
-  try
-    let mappings = g:alti#mappings#{g:alti_default_mappings_base}#define
-  catch /E121/
-    echoerr 'invalid value of g:alti_default_mappings_base: '. g:alti_default_mappings_base
-    let mappings = g:alti#mappings#standard#define
-  endtry
-  let mappings = extend(copy(mappings), get(g:, 'alti_prompt_mappings', {}))
-  call filter(mappings, 'v:val!=[]')
-
-  if g:alti_enable_statusline
-    let s:stlmgr = s:newStlMgr(Define)
-  end
-  call s:cmpwin.update_candidates()
-  call s:cmpwin.buildview()
-  call s:prompt.echo()
-  while has_key(s:, 'prompt')
-    sil! resize +0
-    redraw
-    let inputs = alti_l#lim#ui#keybind(mappings, {'transit':1, 'expand': 1})
-    if inputs=={}
-      call s:PrtExit()
-    elseif inputs.action!=''
-      try
-        exe 'call s:'. inputs.action
-      catch /E1[01]7/
-      endtry
-    elseif inputs.surplus !~# "^[\x80[:cntrl:]]"
-      exe printf('call s:PrtAdd(''%s'')', inputs.surplus)
-    end
-  endwhile
-endfunction
-"}}}
-
-"------------------
-function! alti#get_arginfo() "{{{
-  if !has_key(s:, 'cmpwin')
-    echoerr 'alti: when alti is not running, it is not possible to call alti#get_arginfo().'
-    return {}
-  end
-  let ret = {'precursor': s:prompt.input[0], 'postcursor': s:prompt.input[1], 'inputline': s:prompt.inputline, 'cursoridx': s:argleadsholder.cursoridx, 'arglead': s:argleadsholder.arglead, 'ordinal': s:argleadsholder.ordinal, 'action': s:argleadsholder.action}
-  let ret.args = alti#split2args(s:prompt.inputline)
-  return ret
-endfunction
-"}}}
-function! alti#on_insertstr_rm_arglead() "{{{
-  if !( has_key(s:, 'cmpwin') && get(s:cmpwin, 'on_cmpl') )
-    echoerr 'backdraft: この関数は補完実行中にのみ機能します。' | return
-  end
-  call s:prompt.rm_arglead()
-  let s:cmpwin.on_cmpl = 0
-endfunction
-"}}}
-function! alti#get_fuzzy_arglead(arglead) "{{{
-  return substitute(a:arglead, '.\_$\@!', '\0[^\0]\\{-}', 'g')
-endfunction
-"}}}
-function! alti#split2args(input) "{{{
-  return split(a:input, '\%(\\\@<!\s\)\+')
-endfunction
-"}}}
-
-"==================
-function! alti#insertstr_posttab_annotation(context, selected) "{{{
-  call alti#on_insertstr_rm_arglead()
-  return substitute(a:selected, '\t.*$', '', '')
-endfunction
-"}}}
-function! alti#insertstr_pretab_annotation(context, selected) "{{{
-  call alti#on_insertstr_rm_arglead()
-  return substitute(a:selected, '^.*\t', '', '')
-endfunction
-"}}}
-function! alti#insertstr_raw(context, selected) "{{{
-  call alti#on_insertstr_rm_arglead()
-  return a:selected
-endfunction
-"}}}
-
-"=============================================================================
-function! s:default_enter() "{{{
-endfunction
-"}}}
-function! s:default_prompt(context) "{{{
-  return '>>> '
-endfunction
-"}}}
-function! s:default_cmpl(context) "{{{
-  return []
-endfunction
-"}}}
-function! s:default_submitted(context, input, lastselected) "{{{
-  if a:input =~ '^\s*$'
-    return
-  end
-  exe a:input
-endfunction
-"}}}
-function! s:default_canceled(context, input, lastselected) "{{{
-endfunction
-"}}}
-"==================
-let s:TYPE_NUM = type(0)
-function! s:_keyloop() "{{{
-  while has_key(s:, 'prompt') && get(s:defines, 'enable_keyloop', 1)
-    redraw
-    let nr = getchar()
-    let char = type(nr)==s:TYPE_NUM ? nr2char(nr) : nr
-    if nr >= 33
-      cal s:PrtAdd(char)
-    else
-      let cmd = matchstr(maparg(char), ':<C-u>\zs.\+\ze<CR>$')
-      exe ( cmd != '' ? cmd : 'norm '.char )
-    end
-  endwhile
-endfunction
-"}}}
-function! s:_adjust_cmdheight(str) "{{{
-  let nlcount = s:_get_nlcount(a:str)
-  let &cmdheight = nlcount >= s:glboptholder.get_optval('cmdheight') ? nlcount+1 : s:glboptholder.get_optval('cmdheight')
-endfunction
-"}}}
-function! s:_get_nlcount(str) "{{{
-  return count(split(a:str, '\zs'), "\n")
-endfunction
-"}}}
-"==================
-let s:_dupliexcluder = {}
-function! s:new_dupliexcluder() "{{{
-  let _ = {'seens': {}}
-  call extend(_, s:_dupliexcluder, 'keep')
-  return _
-endfunction
-"}}}
-function! s:_dupliexcluder.filter(list) "{{{
-  return filter(a:list, 'self._seen(v:val)')
-endfunction
-"}}}
-function! s:_dupliexcluder._seen(str) "{{{
-  if has_key(self.seens, a:str)
-    return
-  end
-  if a:str!=''
-    let self.seens[a:str] = 1
-  end
-  return 1
-endfunction
-"}}}
-"==================
-"s:HistHolder
-function! s:_writecachefile(filename, list) "{{{
-  let dir = expand(g:alti_cache_dir)
-  if !isdirectory(dir)
-    call mkdir(dir, 'p')
-  end
-  call writefile(a:list, dir. '/'. a:filename)
-endfunction
-"}}}
-"s:cmpwin
-let s:CWMAX = 10
-let s:CWMIN = 1
-function! s:_get_cw_opts() "{{{
-  if !has_key(g:, 'alti_cmpl_window')
-    return {'pos': 'bottom', 'order': 'ttb', 'max_height': s:CWMAX, 'min_height': s:CWMIN}
-  end
-  let ret = extend({'pos': 'bottom', 'order': 'ttb', 'max_height': s:CWMAX, 'min_height': s:CWMIN}, g:alti_cmpl_window)
-  let [ret.max, ret.min] = [max([ret.max, 1]), max([ret.min, 1])]
-  let ret.min = min([ret.min, ret.max])
-  return ret
-endfunction
-"}}}
-function! s:_guicursor_enter() "{{{
-  setl cul gcr=a:block-blinkon0-NONE t_ve=
-endfunction
-"}}}
-"Prt
-function! s:_exit_process(funcname) "{{{
-  call s:argleadsholder._update_cursoridx()
-  call s:argleadsholder.update_arglead()
-  let state = extend(alti#get_arginfo(), {'lastselected': s:cmpwin._get_selected_word()})
-  let CanceledFunc = s:prompt.get_exitfunc_elms(a:funcname)
-  call s:cmpwin.close()
-  wincmd p
-  try
-    call call(CanceledFunc, [state, state.inputline, state.lastselected], get(s:, 'funcself', {}))
-  catch /E118/
-    call call(CanceledFunc, [state, state.inputline], get(s:, 'funcself', {}))
-  endtry
-  let save_imd = &imd
-  set imdisable
-  let &imd = save_imd
-  if !has_key(s:, 'cmpwin')
-    unlet! s:funcself
-  end
-endfunction
-"}}}
-
-"=============================================================================
+"======================================
 function! s:PrtAdd(char) "{{{
   call s:HistHolder.reset()
   call s:prompt.append(a:char)
@@ -701,7 +536,7 @@ function! s:PrtInsertReg() "{{{
   set gcr&
   let char = nr2char(getchar())
   let &gcr = save_gcr
-  for [regname, chars] in items(s:getreg_maps)
+  for [regname, chars] in items(s:get_getreg_mappings())
     if match(chars, char)!=-1
       if regname=~'^.$'
         let str = getreg(regname)
@@ -841,6 +676,132 @@ function! s:ToggleType(delta) "{{{
 endfunction
 "}}}
 function! s:Nop() "{{{
+endfunction
+"}}}
+
+
+"=============================================================================
+"Main:
+let s:dfl_define = {'name': '', 'default_text': '', 'static_text': '', 'prompt': 's:default_prompt', 'cmpl': 's:default_cmpl',
+  \ 'insertstr': 'alti#insertstr_posttab_annotation', 'canceled': 's:default_canceled', 'submitted': 's:default_submitted',
+  \ 'append_sep': 1, 'prompt_hl': 'Comment'}
+function! alti#init(define, ...) "{{{
+  if has_key(s:, 'cmpwin')| return| end
+  let firstmess = a:0 ? substitute(a:1, "^\n", '', '') : ''
+  let s:defines = {'idx': 0}
+  let s:defines.list = type(a:define)!=type([]) ? [a:define] : a:define==[] ? [{}] : a:define
+  let s:defines.len = len(s:defines.list)
+  let Define = s:defines.list[0]
+  call extend(Define, s:dfl_define, 'keep')
+  let s:regholder = s:newRegHolder()
+  let s:funcself = {}
+  for def in s:defines.list
+    call extend(s:funcself, get(def, 'bind', {}))
+  endfor
+  call extend(s:funcself, get(a:, 2, {}))
+  call map(copy(s:defines.list), 'call(get(v:val, "enter", "s:default_enter"), [], s:funcself)')
+  let s:glboptholder = s:newGlboptHolder(Define)
+  let s:cmpwin = s:newCmpWin(Define)
+  let s:prompt = s:newPrompt(Define, firstmess)
+  let s:argleadsholder = s:newArgleadsHolder(Define)
+  try
+    let mappings = g:alti#mappings#{g:alti_default_mappings_base}#define
+  catch /E121/
+    echoerr 'invalid value of g:alti_default_mappings_base: '. g:alti_default_mappings_base
+    let mappings = g:alti#mappings#standard#define
+  endtry
+  let mappings = extend(copy(mappings), get(g:, 'alti_prompt_mappings', {}))
+  call filter(mappings, 'v:val!=[]')
+
+  if g:alti_enable_statusline
+    let s:stlmgr = s:newStlMgr(Define)
+  end
+  call s:cmpwin.update_candidates()
+  call s:cmpwin.buildview()
+  call s:prompt.echo()
+  while has_key(s:, 'prompt')
+    sil! resize +0
+    redraw
+    let inputs = alti_l#lim#ui#keybind(mappings, {'transit':1, 'expand': 1})
+    if inputs=={}
+      call s:PrtExit()
+    elseif inputs.action!=''
+      try
+        exe 'call s:'. inputs.action
+      catch /E1[01]7/
+      endtry
+    elseif inputs.surplus !~# "^[\x80[:cntrl:]]"
+      exe printf('call s:PrtAdd(''%s'')', inputs.surplus)
+    end
+  endwhile
+endfunction
+"}}}
+
+"------------------
+function! alti#get_arginfo() "{{{
+  if !has_key(s:, 'cmpwin')
+    echoerr 'alti: when alti is not running, it is not possible to call alti#get_arginfo().'
+    return {}
+  end
+  let ret = {'precursor': s:prompt.input[0], 'postcursor': s:prompt.input[1], 'inputline': s:prompt.inputline, 'cursoridx': s:argleadsholder.cursoridx, 'arglead': s:argleadsholder.arglead, 'ordinal': s:argleadsholder.ordinal, 'action': s:argleadsholder.action}
+  let ret.args = alti#split2args(s:prompt.inputline)
+  return ret
+endfunction
+"}}}
+function! alti#on_insertstr_rm_arglead() "{{{
+  if !( has_key(s:, 'cmpwin') && get(s:cmpwin, 'on_cmpl') )
+    echoerr 'backdraft: この関数は補完実行中にのみ機能します。' | return
+  end
+  call s:prompt.rm_arglead()
+  let s:cmpwin.on_cmpl = 0
+endfunction
+"}}}
+function! alti#get_fuzzy_arglead(arglead) "{{{
+  return substitute(a:arglead, '.\_$\@!', '\0[^\0]\\{-}', 'g')
+endfunction
+"}}}
+function! alti#split2args(input) "{{{
+  return split(a:input, '\%(\\\@<!\s\)\+')
+endfunction
+"}}}
+
+"==================
+function! alti#insertstr_posttab_annotation(context, selected) "{{{
+  call alti#on_insertstr_rm_arglead()
+  return substitute(a:selected, '\t.*$', '', '')
+endfunction
+"}}}
+function! alti#insertstr_pretab_annotation(context, selected) "{{{
+  call alti#on_insertstr_rm_arglead()
+  return substitute(a:selected, '^.*\t', '', '')
+endfunction
+"}}}
+function! alti#insertstr_raw(context, selected) "{{{
+  call alti#on_insertstr_rm_arglead()
+  return a:selected
+endfunction
+"}}}
+
+"=============================================================================
+function! s:default_enter() "{{{
+endfunction
+"}}}
+function! s:default_prompt(context) "{{{
+  return '>>> '
+endfunction
+"}}}
+function! s:default_cmpl(context) "{{{
+  return []
+endfunction
+"}}}
+function! s:default_submitted(context, input, lastselected) "{{{
+  if a:input =~ '^\s*$'
+    return
+  end
+  exe a:input
+endfunction
+"}}}
+function! s:default_canceled(context, input, lastselected) "{{{
 endfunction
 "}}}
 
