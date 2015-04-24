@@ -262,10 +262,6 @@ alti#init({define}, [{firstmessage}, [{bind}]])
 	default_text	(文字列)		*alti-define-default_text*
 		既定 : ""
 		開始時に標準で入力されているテキスト。
-	static_text	(文字列)		*alti-define-static_text*
-		既定 : ""
-		default_textと似ているが削除されない。ユーザ定義コマンド用の補
-		完関数をそのまま利用するときに使う。
 	append_sep	(数値)			*alti-define-append_sep*
 		既定 : 1
 		非0なら、補完時に自動で空白を挟む。
@@ -274,7 +270,7 @@ alti#init({define}, [{firstmessage}, [{bind}]])
 		元いたバッファの値を利用するときにこの関数内で取得するとよい。
 		引数は取らない。
 	cmpl (関数の参照･グローバル関数名)	*alti-define-cmpl*
-		1つの引数{context}(辞書)|alti-context|を取り、補完窓に表示させ
+		1つの引数{context}(辞書)|alti-Context|を取り、補完窓に表示させ
 		る内容のリスト型を返す関数である。
 		返値であるリストは、要素が文字列か辞書である。が、文字列である
 		なら全て文字列、辞書であるなら全て辞書と、要素の方をそろえねば
@@ -298,19 +294,19 @@ alti#init({define}, [{firstmessage}, [{bind}]])
 		既定関数は空リストを返す。
 	prompt (関数の参照･グローバル関数名)	*alti-define-prompt*
 		|alti-define-cmpl|と同じく1つの引数{context}(辞書)を取り
-		|alti-context|、プロンプト文字列を返す関数である。入力に応じて
+		|alti-Context|、プロンプト文字列を返す関数である。入力に応じて
 		プロンプトを変化させることが可能になる。既定関数が返すプロンプ
 		ト文字列は ">>> " である。
 	insertstr (関数の参照･グローバル関数名)	*alti-define-insertstr*
 		既定 : "alti#insertstr_posttab_annotation" 
-		この関数は2つ引数を取る。1つ目は {context}(辞書)|alti-context|
+		この関数は2つ引数を取る。1つ目は {context}(辞書)|alti-Context|
 		2つ目は {selected}(選ばれた候補文字列) である。
 		選択された候補で補完を実行するとき呼ばれ、補完を完成させる。
 		通常次のように SelectedCandidate の先頭から ArgLead を除いた値
 		を返すようにする。 >
-	  function! alti#insertstr_raw_norm_arglead(context, selected)
-	    return substitute(a:selected, '^'.a:context.arglead, '', '')
-	  endfunction
+		  function! alti#insertstr_raw_norm_arglead(context, selected)
+		    return substitute(a:selected, '^'.a:context.arglead,'','')
+		  endfunction
 <		これはこの関数の返値が実際に挿入される文字列であるためである。
 		つまり、"arg"まで入力されている状態で"argument"という候補で補
 		完を実行した場合、実際に入力される文字列は"ument"でなければな
@@ -319,10 +315,10 @@ alti#init({define}, [{firstmessage}, [{bind}]])
 		|alti#on_insertstr_rm_arglead()|を呼んでいるのなら、
 		ArgLeadを除く操作をせず、返値がそのまま挿入される補完の文字列
 		となる。 >
-	  function! alti#insertstr_raw_rm_arglead(context, selected)
-	    call alti#on_insertstr_rm_arglead()
-	    return a:selected
-	  endfunction
+		  function! alti#insertstr_raw_rm_arglead(context, selected)
+		    call alti#on_insertstr_rm_arglead()
+		    return a:selected
+		  endfunction
 <		既定値は "alti#insertstr_posttab_annotation" である。これは、
 		タブ文字以降を削除する関数である。これにより、候補の後にタブ文
 		字を挟んで注釈を付けられるようにすることを意図している。標準で
@@ -331,7 +327,7 @@ alti#init({define}, [{firstmessage}, [{bind}]])
 	submitted (関数の参照･グローバル関数名)	*alti-define-submitted*
 		Submitされた後に呼ばれる関数。2つないし3つ仮引数(パラメータ)が
 		定義され、その数だけの実引数を取る。
-		1つ目は {context}(辞書)|alti-context|である。
+		1つ目は {context}(辞書)|alti-Context|である。
 		2つ目は {input}(alti終了時に入力されていた文字列) である。
 		3つ目は{lastselected}である。これは AltI 終了時にカーソルの当
 		たっていた(挿入されていない)補完候補文字列である。この仮引数は
@@ -360,19 +356,176 @@ alti#init({define}, [{firstmessage}, [{bind}]])
 		  return map(['a', 'b', 'c'], 'v:val. '.'.self.filetype')
 		endfunction
 <
-	コンテキスト情報			*alti-context*
-	|alti#init()|の定義{define}が持つことが出来る関数 cmpl prompt
-	insertstr submitted canceled が引数として受け取るコンテキスト情報は次
-	のキーを持つ辞書である。
-	arglead    : 補完対象の文字列
-	precursor  : カーソルより前の文字列
-	postcursor : カーソルを含むカーソルより後の文字列
-	inputline  : 入力文字列全体
-	args       : 入力された文字列を非エスケープ空白で分割したリスト。
-	cursoridx  : カーソルの位置(バイト単位のインデックス)
-	ordinal    : 現在、先頭から何番目の引数の補完を行っているのか。初めは
-	             1から始まる。エスケープされていない空白を区切りと見なす。
-	action     : ??? (NOTE: 今この機能は未実装なので無視してほしい)
+
+
+--------------------------------------
+						*alti-insertstr-functions*
+以下の関数の関数名は|alti-define-insertstr|の値として利用することが出来る。
+
+					*alti#insertstr_posttab_annotation()*
+	alti#insertstr_posttab_annotation({context}, {selected})
+		|alti-define-insertstr|の既定関数である。
+		タブ文字以降を無視するので、タブ文字以降を候補の注釈とすること
+		が可能。
+
+
+					*alti#insertstr_pretab_annotation()*
+	alti#insertstr_pretab_annotation({context}, {selected})
+		タブ文字以前を無視するので、タブ文字以前を候補の注釈とすること
+		が可能。
+
+
+						*alti#insertstr_raw()*
+	alti#insertstr_raw({context}, {selected})
+		候補をそのまま補完として挿入する。
+
+
+==============================================================================
+Altiインターフェイス				*alti-Alti-interface*
+
+Altiキーマッピング				*alti-Alti-key-mappings*
+
+altiバッファ内で標準で定義されるキーマッピングの名称と説明である。
+|g:alti_default_mappings_base|に "standard" か "ctrlplike" を定義することで標
+準のキーマッピングを選択することが出来る。
+また、|g:alti_prompt_mappings|で標準で定義されたキーマッピングを上書きすること
+が出来る。
+
+	PrtBS()			入力をカーソル前方1文字削除
+		standard :		['<BS>', '<C-h>']
+		ctrlplike :		['<BS>', '<C-]>']
+	PrtDelete()		入力をカーソル後方1文字削除
+		standard :		['<Del>', '<C-d>']
+		ctrlplike :		['<Del>']
+	PrtDeleteWord()		入力の1単語を削除
+		standard :		['<C-w>']
+		ctrlplike :		['<C-w>']
+	PrtClear()		入力をクリアする
+		standard :		['<C-u>']
+		ctrlplike :		['<C-u>']
+	PrtInsertReg()		レジスタ挿入モードになる
+				|g:alti_getreg_mappings|参照
+		standard :		['<C-r>']
+		ctrlplike :		['<C-r>', '<C-\>']
+	PrtHistory(-1)		履歴を先に進める
+		standard :		['<C-x><C-n>']
+		ctrlplike :		['<C-n>']
+	PrtSmartHistory(-1)	履歴を先に進めるが、進められなければ、選択候補
+				を入力欄に挿入
+		standard :		[]
+		ctrlplike :		[]
+	PrtHistory(1)		履歴を前に遡る
+		standard :		['<C-x><C-p>']
+		ctrlplike :		['<C-p>']
+	PrtCurStart()		入力欄の先頭へ
+		standard :		['<C-a>']
+		ctrlplike :		['<C-a>']
+	PrtCurEnd()		入力欄の末尾へ
+		standard :		['<C-e>']
+		ctrlplike :		['<C-e>']
+	PrtCurLeft()		入力欄カーソルを左へ
+		standard :		['<C-b>', '<Left>']
+		ctrlplike :		['<C-h>', '<Left>']
+	PrtCurRight()		入力欄カーソルを右へ
+		standard :		['<C-f>', '<Right>']
+		ctrlplike :		['<C-l>', '<Right>']
+	PrtPage(1)	候補が多すぎて窓に入り切らないとき、次ページへとめくる
+		standard :		['<C-j>', '<PageDown>', '<kPageDown>']
+		ctrlplike :		['<PageDown>', '<kPageDown>']
+	PrtPage(-1)	候補が多すぎて窓に入り切らないとき、前ページへとめくる
+		standard :		['<C-k>', '<PageUp>', '<kPageUp>']
+		ctrlplike :		['<PageUp>', '<kPageUp>']
+	PrtSelectMove("j")	候補窓の選択を1つ下へ
+		standard :		['<C-n>', '<Down>']
+		ctrlplike :		['<C-j>', '<Down>']
+	PrtSelectMove("k")	候補窓の選択を1つ上へ
+		standard :		['<C-p>', '<Down>']
+		ctrlplike :		['<C-j>', '<Down>']
+	PrtSelectMove("t")	候補窓の先頭へ
+		standard :		['<Home>', '<kHome>']
+		ctrlplike :		['<Home>', '<kHome>']
+	PrtSelectMove("b")	候補窓の末尾へ
+		standard :		['<End>', '<End>']
+		ctrlplike :		['<End>', '<End>']
+	PrtSelectInsert()	選択候補を入力欄へ挿入
+		standard :		['<Tab>']
+		ctrlplike :		['<Tab>']
+	PrtExit()		キャンセルしてalti終了
+		standard :		['<Esc>', '<C-c>']
+		ctrlplike :		['<Esc>', '<C-c>']
+	PrtSubmit()		確定してalti終了
+		standard :		['<CR>']
+		ctrlplike :		['<CR>']
+	ToggleType(1)	複数のタイプを持つ定義のタイプを次のタイプに切り替える
+		standard :		['<C-x><C-f>', '<C-]>', '<C-Down>']
+		ctrlplike :		['<C-f>', '<C-Down>']
+	ToggleType(-1)	複数のタイプを持つ定義のタイプを前のタイプに切り替える
+		standard :		['<C-x><C-b>', '<C-\>', '<C-Up>']
+		ctrlplike :		['<C-b>', '<C-Up>']
+
+
+------------------------------------------------------------------------------
+Context						*alti-Context*
+
+Contextは|alti#init()|に渡す定義{define}の中で、cmpl, prompt, insertstr,
+submitted, canceled の関数の第一引数として渡される辞書である。
+これらの関数の挙動はこの辞書の要素を利用すれば細かく定義することができる。
+以下の要素を持つ。
+
+Context.arglead		補完対象の文字列
+Context.precursor	カーソルより前の文字列
+Context.postcursor	カーソルを含むカーソルより後の文字列
+Context.inputline	入力文字列全体
+Context.inputs		入力された文字列を非エスケープ空白で分割したリスト
+Context.leftwords	カーソル前の文字列を非エスケープ空白で分割したリスト
+Context.leftcount	カーソルより前にある単語の数。入力中のものは含めない。
+Context.cursoridx	カーソルの位置(バイト単位のインデックス)
+
+Context.filtered({candidates})
+	補完候補リスト{candidates}から、文脈に応じて不要なものを削除したリスト
+	を返す。文脈とは、既に入力されている文字列や補完対象の文字列(arglead)
+	などである。argleadに前方一致マッチする候補が使われる。
+	補完候補リスト{candidates}の要素は、文字列か、リストである。
+	文字列の場合、例えば以下のようなリストを渡すと、 >
+		["foo", "bar", "baz", "qux"]
+<	補完候補は "foo" "bar" "baz" "qux" から絞り込まれる。
+	リストを渡す場合、その第一要素は補完候補文字列、第二要素以降はその補完
+	候補が所属するグループである。
+	グループは排他的な候補を作るのに利用する。 >
+		["foo", ["bar", "BARZ"], ["baz", "BARZ"], "qux"]
+<	この場合、"foo" "bar" "baz" "qux" という候補があり、"bar" と "baz" は
+	"BARZ" というグループに属している。、コマンドラインに "bar" "baz" のい
+	ずれかが既に入力されているなら、もう片方も補完候補から除外される。
+	グループの指定を複数することができる。それには第二要素をリストにするか
+	、第三要素以降を利用する。以下の2種類の指定は同じ結果となる。 >
+		[["foo", ["A","B"]], ["bar", "A"], ["baz", "B"], "qux"]
+		[["foo", "A","B"], ["bar", "A"], ["baz", "B"], "qux"]
+<	この場合、"foo" は "A" "B" 両グループに所属するので、"bar" "baz" のど
+	ちらかが入力されていると候補に現れないし、 "foo" が入力されているのな
+	ら "bar" "baz" は補完候補から除外される。
+	特殊なグループとして "__PARM" というものがある。このグループに所属して
+	いる補完候補は既に自身や同じグループの候補がコマンドラインに入力されて
+	いても、構わず補完候補に現れる。例えば、 >
+		[["foo", ["__PARM","A"]], ["bar", "A"], ["baz", "A"], "qux"]
+<	の場合、既にコマンドラインに "foo" が入力されていても、 "bar" や "baz"
+	が入力されていても、候補には常に "foo" が表示される。ただし AlgLeadの
+	絞り込みの影響は受ける。
+	グループ名には文字列、数値、浮動小数点数が使える。文字列の場合は空文字
+	は利用できない。また、アンダースコアを頭に2つ付けた名前は予約されてい
+	る。
+
+Context.backward_filtered({candidates})
+	|Context.filtered()|と同じだが arglead に前方一致ではなく後方一致で絞
+	り込む。
+
+Context.partial_filtered({candidates})
+	|Context.filtered()|と同じだが arglead に前方一致ではなく部分一致で絞
+	り込む。
+
+Context.fuzzy_filtered({candidates})
+	|Context.filtered()|と同じだが arglead に前方一致ではなく曖昧一致で絞
+	り込む。曖昧一致とは、例えば "fbr" という arglead に対して、"foobar"
+	"february" "quxfoobarbaz" などの候補が絞り込まれる。
 
 
 
