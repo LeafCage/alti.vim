@@ -189,6 +189,11 @@ alti#init({define}, [{firstmessage}, [{bind}]])
 	default_text	(文字列)		*alti-define-default_text*
 		既定 : ""
 		開始時に標準で入力されているテキスト。
+	static_head	(文字列)		*alti-define-static_head*
+		既定 : ""
+		default_textと似ているが削除されない。入力に何の影響も受けず、
+		また与えないが、終了時に呼ばれる関数 submitted の第二引数とな
+		る文字列の冒頭にこの文字列がくっつく。
 	append_sep	(数値)			*alti-define-append_sep*
 		既定 : 1
 		非0なら、補完時に自動で空白を挟む。
@@ -255,7 +260,8 @@ alti#init({define}, [{firstmessage}, [{bind}]])
 		Submitされた後に呼ばれる関数。2つないし3つ仮引数(パラメータ)が
 		定義され、その数だけの実引数を取る。
 		1つ目は {context}(辞書)|alti-Context|である。
-		2つ目は {input}(alti終了時に入力されていた文字列) である。
+		2つ目は {output} (static_head + alti終了時に入力されていた文字
+		列) である。
 		3つ目は{lastselected}である。これは Alti 終了時にカーソルの当
 		たっていた(挿入されていない)補完候補文字列である。この仮引数は
 		省略することができる。

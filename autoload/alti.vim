@@ -69,14 +69,15 @@ endfunction
 function! s:exit_process(funcname) "{{{
   call s:prompt.update_context()
   let context = s:prompt.context
+  let output = s:prompt.static_head. context.inputline
   let lastselected = s:cmpwin.get_selection()
   let CanceledFunc = s:prompt.get_exitfunc_elms(a:funcname)
   call s:cmpwin.close()
   wincmd p
   try
-    call call(CanceledFunc, [context, context.inputline, lastselected], get(s:, 'funcself', {}))
+    call call(CanceledFunc, [context, output, lastselected], get(s:, 'funcself', {}))
   catch /E118/
-    call call(CanceledFunc, [context, context.inputline], get(s:, 'funcself', {}))
+    call call(CanceledFunc, [context, output], get(s:, 'funcself', {}))
   endtry
   let save_imd = &imd
   set imdisable
@@ -431,6 +432,7 @@ function! s:newPrompt(define, firstmess) "{{{
   let obj.submittedfunc = a:define.submitted
   let obj.canceledfunc = a:define.canceled
   let obj.inputline = a:define.default_text
+  let obj.static_head = a:define.static_head=='' ? '' : a:define.static_head=~'\s$' ? a:define.static_head : a:defaine.static_head. ' '
   let obj._firstmess = a:firstmess
   let obj.context = s:newContext(obj, [])
   return obj
@@ -464,7 +466,7 @@ function! s:Prompt.echo() "{{{
   let is_cursorspace = inputs[1]=='' || inputs[1]==' '
   let [hiactive, hicursor] = ['AltIPrtText', (is_cursorspace? 'AltIPrtCursor': 'AltIPrtCursor')]
   exe 'echoh AltIPrtBase| echo "'. escape(prtbase, '"\'). '"'
-  exe 'echoh' hiactive '| echon "'. inputs[0]. '"'
+  exe 'echoh' hiactive '| echon "'. self.static_head. inputs[0]. '"'
   exe 'echoh' hicursor '| echon "'. (is_cursorspace? ' ': inputs[1]). '"'
   exe 'echoh' hiactive '| echon "'. inputs[2].'"| echoh NONE'
 endfunction
@@ -614,7 +616,7 @@ endfunction
 
 "=============================================================================
 "Main:
-let s:dfl_define = {'name': '', 'default_text': '', 'prompt': 's:default_prompt', 'cmpl': 's:default_cmpl',
+let s:dfl_define = {'name': '', 'default_text': '', 'static_head': '', 'prompt': 's:default_prompt', 'cmpl': 's:default_cmpl',
   \ 'insertstr': 'alti#insertstr_posttab_annotation', 'canceled': 's:default_canceled', 'submitted': 's:default_submitted',
   \ 'append_sep': 1, 'prompt_hl': 'Comment'}
 function! alti#init(define, ...) "{{{
@@ -882,6 +884,7 @@ function! s:ToggleType(delta) "{{{
   let s:prompt.prtbasefunc = define.prompt
   let s:prompt.submittedfunc = define.submitted
   let s:prompt.canceledfunc = define.canceled
+  let s:prompt.static_head = a:define.static_head=='' ? '' : a:define.static_head=~'\s$' ? a:define.static_head : a:defaine.static_head. ' '
   exe 'hi link AltIPrtBase' define.prompt_hl
   call s:refresh()
   if g:alti_enable_statusline
