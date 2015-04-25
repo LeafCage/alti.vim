@@ -69,15 +69,15 @@ endfunction
 function! s:exit_process(funcname) "{{{
   call s:prompt.update_context()
   let context = s:prompt.context
-  let output = s:prompt.static_head. context.inputline
+  let line = s:prompt.static_head. context.inputline
   let lastselected = s:cmpwin.get_selection()
   let CanceledFunc = s:prompt.get_exitfunc_elms(a:funcname)
   call s:cmpwin.close()
   wincmd p
   try
-    call call(CanceledFunc, [context, output, lastselected], get(s:, 'funcself', {}))
+    call call(CanceledFunc, [context, line, lastselected], get(s:, 'funcself', {}))
   catch /E118/
-    call call(CanceledFunc, [context, output], get(s:, 'funcself', {}))
+    call call(CanceledFunc, [context, line], get(s:, 'funcself', {}))
   endtry
   let save_imd = &imd
   set imdisable
@@ -432,7 +432,7 @@ function! s:newPrompt(define, firstmess) "{{{
   let obj.submittedfunc = a:define.submitted
   let obj.canceledfunc = a:define.canceled
   let obj.inputline = a:define.default_text
-  let obj.static_head = a:define.static_head=='' ? '' : a:define.static_head=~'\s$' ? a:define.static_head : a:defaine.static_head. ' '
+  let obj.static_head = a:define.static_head=='' ? '' : a:define.static_head=~'\s$' ? a:define.static_head : a:define.static_head. ' '
   let obj._firstmess = a:firstmess
   let obj.context = s:newContext(obj, [])
   return obj
@@ -883,7 +883,7 @@ function! s:ToggleType(delta) "{{{
   let s:prompt.prtbasefunc = define.prompt
   let s:prompt.submittedfunc = define.submitted
   let s:prompt.canceledfunc = define.canceled
-  let s:prompt.static_head = a:define.static_head=='' ? '' : a:define.static_head=~'\s$' ? a:define.static_head : a:defaine.static_head. ' '
+  let s:prompt.static_head = a:define.static_head=='' ? '' : a:define.static_head=~'\s$' ? a:define.static_head : a:define.static_head. ' '
   exe 'hi link AltIPrtBase' define.prompt_hl
   call s:refresh()
   if g:alti_enable_statusline

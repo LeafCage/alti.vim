@@ -260,8 +260,8 @@ alti#init({define}, [{firstmessage}, [{bind}]])
 		Submitされた後に呼ばれる関数。2つないし3つ仮引数(パラメータ)が
 		定義され、その数だけの実引数を取る。
 		1つ目は {context}(辞書)|alti-Context|である。
-		2つ目は {output} (static_head + alti終了時に入力されていた文字
-		列) である。
+		2つ目は {line}(static_head + alti終了時に入力されていた文字列)
+		である。
 		3つ目は{lastselected}である。これは Alti 終了時にカーソルの当
 		たっていた(挿入されていない)補完候補文字列である。この仮引数は
 		省略することができる。
