@@ -48,16 +48,20 @@ function! s:newInputs(keys, ...) "{{{
 endfunction
 "}}}
 function! s:Inputs.receive() "{{{
-  let base_time = reltime()
-  while 1
-    let _ = getchar(0)
-    if _==s:TYPE_STR || _
-      break
-    elseif has_key(self, 'asyncfunc') && str2float(reltimestr(reltime(base_time))) >= self.asynctime
-      call call('call', self.asyncfunc)
-      let base_time= reltime()
-    end
-  endwhile
+  if has_key(self, 'asyncfunc')
+    let base_time = reltime()
+    while 1
+      let _ = getchar(0)
+      if _==s:TYPE_STR || _
+        break
+      elseif str2float(reltimestr(reltime(base_time))) >= self.asynctime
+        call call('call', self.asyncfunc)
+        let base_time= reltime()
+      end
+    endwhile
+  else
+    let _ = getchar()
+  end
   let input = type(_)==s:TYPE_STR ? _ : nr2char(_)
   let self.crrinput .= input
   call filter(self.keys, 'stridx(v:val, self.crrinput)==0')
