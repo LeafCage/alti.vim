@@ -380,9 +380,15 @@ altiバッファ内で標準で定義されるキーマッピングの名称と�
 	PrtSelectMove("b")	候補窓の末尾へ
 		standard :		['<End>', '<End>']
 		ctrlplike :		['<End>', '<End>']
-	PrtSelectInsert()	選択候補を入力欄へ挿入
+	PrtInsertSelection()	選択候補を入力欄へ挿入
 		standard :		['<Tab>']
 		ctrlplike :		['<Tab>']
+	PrtInsertSelection({char})
+				選択候補を入力欄へ挿入。候補がないときや、エス
+				ケープ文字 "\" が直前に存在するときには代わり
+				に文字{char}を挿入する。
+		standard :		Undefined
+		ctrlplike :		Undefined
 	PrtExit()		キャンセルしてalti終了
 		standard :		['<Esc>', '<C-c>']
 		ctrlplike :		['<Esc>', '<C-c>']

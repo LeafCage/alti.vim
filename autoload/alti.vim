@@ -829,15 +829,14 @@ endfunction
 "}}}
 function! s:PrtInsertSelection(...) "{{{
   let substr = a:0 ? a:1 : ''
-  if !(substr=='' || match(s:prompt.input[0], '\%([^\\]\\\)\@<!\\$')==-1)
+  let selection = s:cmpwin.get_selection()
+  if substr!='' && (selection=='' || match(s:prompt.input[0], '\%([^\\]\\\)\@<!\\$')!=-1)
     call s:PrtAdd(substr)
+    return
+  elseif selection==''
     return
   end
   call s:HistHolder.reset()
-  let selection = s:cmpwin.get_selection()
-  if selection==''
-    return
-  end
   call s:prompt.insert_selection(selection)
   call s:cmpwin.update_candidates_after_insert_selection()
   call s:cmpwin.buildview()
