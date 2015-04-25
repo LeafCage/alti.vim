@@ -26,10 +26,11 @@ License : MIT license  {{{
 
 概要				|alti-introduction|
 使い方				|alti-usage|
-インターフェイス		|alti-interface|
-  変数				  |alti-variables|
-  キーマッピング		  |alti-key-mappings|
-  関数				  |alti-functions|
+変数				|alti-variables|
+関数				|alti-functions|
+Altiインターフェイス		|alti-Alti-interface|
+  Context			  |alti-Context|
+  Altiキーマッピング		  |alti-Alti-key-mappings|
 TODO				|alti-todo|
 
 
@@ -55,17 +56,13 @@ https://github.com/LeafCage/alti.vim
 1. altiの定義を作る。(altiはライブラリだからそのままでは動かない。)
 2. alti#init()に定義を渡す。
 3. altiが動く。
-4. <C-j><C-k>で候補を選択、通常入力で絞込み、<C-v>で次の候補ページへ、
-   <Tab>(or <C-n>※)で選択されている候補を挿入。
+4. <C-n><C-p> (ctrlplike のときは <C-j><C-k>) で候補を選択、通常入力で絞込み、
+   <Tab>で選択されている候補を挿入。
 5. こうしてコマンドを組み立てたら、<CR>で実行。
 6. コマンドを受け取った関数が何かする。やった！
 
-※<C-n>は履歴の先頭にいるときに限る
 
 ==============================================================================
-インターフェイス				*alti-interface*
-
-------------------------------------------------------------------------------
 変数						*alti-variables*
 
 g:alti_available				*g:alti_available*
@@ -123,14 +120,14 @@ g:alti_default_mappings_base			*g:alti_default_mappings_base*
 		standard	alti の操作に適したキーマッピング
 		ctrlplike	|ctrlp.vim|の標準に似せたキーマッピング
 	無効な値を指定した場合は "standard" が使用される。
-	ベースとなるキーマッピングとその説明は|alti-key-mappings|を参照。
+	ベースとなるキーマッピングとその説明は|alti-Alti-key-mappings|を参照。
 	|g:alti_prompt_mappings|でベースとなったマッピングをさらに書き換えるこ
 	とができる。
 
 
 g:alti_prompt_mappings				*g:alti_prompt_mappings*
 	キーにキーマップ名、値にキーマッピング文字列のリストを指定した辞書で、
-	|alti-key-mappings|で定義されたキーマッピングを上書きする。
+	|alti-Alti-key-mappings|で定義されたキーマッピングを上書きする。
 	値に空リストを定義すると、そのキーマッピングは無効となる。
 	Example: >
 	let g:alti_default_mappings_base = 'ctrlplike'
@@ -166,89 +163,19 @@ g:alti_getreg_mappings				*g:alti_getreg_mappings*
 
 
 ------------------------------------------------------------------------------
-キーマッピング					*alti-key-mappings*
-
-	altiバッファ内で標準で定義されるキーマッピングの名称と説明である。
-	|g:alti_default_mappings_base|に "standard" か "ctrlplike" を定義する
-	ことで標準のキーマッピングを選択することが出来る。
-	また、|g:alti_prompt_mappings|で標準で定義されたキーマッピングを上書き
-	することが出来る。
-
-	PrtBS()			入力をカーソル前方1文字削除
-		standard :		['<BS>', '<C-h>']
-		ctrlplike :		['<BS>', '<C-]>']
-	PrtDelete()		入力をカーソル後方1文字削除
-		standard :		['<Del>', '<C-d>']
-		ctrlplike :		['<Del>']
-	PrtDeleteWord()		入力の1単語を削除
-		standard :		['<C-w>']
-		ctrlplike :		['<C-w>']
-	PrtClear()		入力をクリアする
-		standard :		['<C-u>']
-		ctrlplike :		['<C-u>']
-	PrtInsertReg()		レジスタ挿入モードになる
-				|g:alti_getreg_mappings|参照
-		standard :		['<C-r>']
-		ctrlplike :		['<C-r>', '<C-\>']
-	PrtHistory(-1)		履歴を先に進める
-		standard :		['<C-x><C-n>']
-		ctrlplike :		['<C-n>']
-	PrtSmartHistory(-1)	履歴を先に進めるが、進められなければ、選択候補
-				を入力欄に挿入
-		standard :		[]
-		ctrlplike :		[]
-	PrtHistory(1)		履歴を前に遡る
-		standard :		['<C-x><C-p>']
-		ctrlplike :		['<C-p>']
-	PrtCurStart()		入力欄の先頭へ
-		standard :		['<C-a>']
-		ctrlplike :		['<C-a>']
-	PrtCurEnd()		入力欄の末尾へ
-		standard :		['<C-e>']
-		ctrlplike :		['<C-e>']
-	PrtCurLeft()		入力欄カーソルを左へ
-		standard :		['<C-b>', '<Left>']
-		ctrlplike :		['<C-h>', '<Left>']
-	PrtCurRight()		入力欄カーソルを右へ
-		standard :		['<C-f>', '<Right>']
-		ctrlplike :		['<C-l>', '<Right>']
-	PrtPage(1)	候補が多すぎて窓に入り切らないとき、次ページへとめくる
-		standard :		['<C-j>', '<PageDown>', '<kPageDown>']
-		ctrlplike :		['<PageDown>', '<kPageDown>']
-	PrtPage(-1)	候補が多すぎて窓に入り切らないとき、前ページへとめくる
-		standard :		['<C-k>', '<PageUp>', '<kPageUp>']
-		ctrlplike :		['<PageUp>', '<kPageUp>']
-	PrtSelectMove("j")	候補窓の選択を1つ下へ
-		standard :		['<C-n>', '<Down>']
-		ctrlplike :		['<C-j>', '<Down>']
-	PrtSelectMove("k")	候補窓の選択を1つ上へ
-		standard :		['<C-p>', '<Down>']
-		ctrlplike :		['<C-j>', '<Down>']
-	PrtSelectMove("t")	候補窓の先頭へ
-		standard :		['<Home>', '<kHome>']
-		ctrlplike :		['<Home>', '<kHome>']
-	PrtSelectMove("b")	候補窓の末尾へ
-		standard :		['<End>', '<End>']
-		ctrlplike :		['<End>', '<End>']
-	PrtSelectInsert()	選択候補を入力欄へ挿入
-		standard :		['<Tab>']
-		ctrlplike :		['<Tab>']
-	PrtExit()		キャンセルしてalti終了
-		standard :		['<Esc>', '<C-c>']
-		ctrlplike :		['<Esc>', '<C-c>']
-	PrtSubmit()		確定してalti終了
-		standard :		['<CR>']
-		ctrlplike :		['<CR>']
-	ToggleType(1)	複数のタイプを持つ定義のタイプを次のタイプに切り替える
-		standard :		['<C-x><C-f>', '<C-]>', '<C-Down>']
-		ctrlplike :		['<C-f>', '<C-Down>']
-	ToggleType(-1)	複数のタイプを持つ定義のタイプを前のタイプに切り替える
-		standard :		['<C-x><C-b>', '<C-\>', '<C-Up>']
-		ctrlplike :		['<C-b>', '<C-Up>']
-
-
-------------------------------------------------------------------------------
 関数						*alti-functions*
+
+alti#on_insertstr_rm_arglead()		*alti#on_insertstr_rm_arglead()*
+	insertstr関数|alti-define-insertstr|の中でしか呼ぶことが許されていない
+	。現在入力されている文字列の中から ArgLead を除去する。これにより、
+	insertstr関数が返す文字列がそのまま補完で挿入される文字列として扱われ
+	るようになる。
+
+
+alti#split2args({input})			*alti#split2args()*
+	{input}文字列をバックスラッシュでエスケープされていない空白文字で分割
+	したリストを返す。
+
 
 						*alti#init()*
 alti#init({define}, [{firstmessage}, [{bind}]])
@@ -266,7 +193,7 @@ alti#init({define}, [{firstmessage}, [{bind}]])
 		既定 : 1
 		非0なら、補完時に自動で空白を挟む。
 	enter (関数の参照･グローバル関数名)	*alti-define-enter*
-		alti開始前の、AltIバッファに移る前に呼ばれる関数である。
+		alti開始前の、Altiバッファに移る前に呼ばれる関数である。
 		元いたバッファの値を利用するときにこの関数内で取得するとよい。
 		引数は取らない。
 	cmpl (関数の参照･グローバル関数名)	*alti-define-cmpl*
@@ -298,7 +225,7 @@ alti#init({define}, [{firstmessage}, [{bind}]])
 		プロンプトを変化させることが可能になる。既定関数が返すプロンプ
 		ト文字列は ">>> " である。
 	insertstr (関数の参照･グローバル関数名)	*alti-define-insertstr*
-		既定 : "alti#insertstr_posttab_annotation" 
+		既定 : "alti#insertstr_posttab_annotation"
 		この関数は2つ引数を取る。1つ目は {context}(辞書)|alti-Context|
 		2つ目は {selected}(選ばれた候補文字列) である。
 		選択された候補で補完を実行するとき呼ばれ、補完を完成させる。
@@ -329,7 +256,7 @@ alti#init({define}, [{firstmessage}, [{bind}]])
 		定義され、その数だけの実引数を取る。
 		1つ目は {context}(辞書)|alti-Context|である。
 		2つ目は {input}(alti終了時に入力されていた文字列) である。
-		3つ目は{lastselected}である。これは AltI 終了時にカーソルの当
+		3つ目は{lastselected}である。これは Alti 終了時にカーソルの当
 		たっていた(挿入されていない)補完候補文字列である。この仮引数は
 		省略することができる。
 		既定関数は入力文字列が空でなければ|:execute|する。
@@ -527,38 +454,6 @@ Context.fuzzy_filtered({candidates})
 	り込む。曖昧一致とは、例えば "fbr" という arglead に対して、"foobar"
 	"february" "quxfoobarbaz" などの候補が絞り込まれる。
 
-
-
-alti#on_insertstr_rm_arglead()		*alti#on_insertstr_rm_arglead()*
-	insertstr関数|alti-define-insertstr|の中でしか呼ぶことが許されていない
-	。現在入力されている文字列の中から ArgLead を除去する。これにより、
-	insertstr関数が返す文字列がそのまま補完で挿入される文字列として扱われ
-	るようになる。
-
-
-alti#split2args({input})			*alti#split2args()*
-	{input}文字列をバックスラッシュでエスケープされていない空白文字で分割
-	したリストを返す。
-
-
---------------------------------------
-						*alti-insertstr-functions*
-以下の関数の関数名は|alti-define-insertstr|の値として利用することが出来る。
-
-					*alti#insertstr_posttab_annotation()*
-alti#insertstr_posttab_annotation({ArgLead}, {SelectedCandidate})
-	|alti-define-insertstr|の既定関数である。
-	タブ文字以降を無視するので、タブ文字以降を候補の注釈とすることが可能。
-
-
-					*alti#insertstr_pretab_annotation()*
-alti#insertstr_pretab_annotation({ArgLead}, {SelectedCandidate})
-	タブ文字以前を無視するので、タブ文字以前を候補の注釈とすることが可能。
-
-
-						*alti#insertstr_raw()*
-alti#insertstr_raw({ArgLead}, {SelectedCandidate})
-	候補をそのまま補完として挿入する。
 
 
 ==============================================================================

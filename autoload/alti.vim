@@ -69,7 +69,7 @@ endfunction
 function! s:exit_process(funcname) "{{{
   call s:prompt.update_context()
   let context = s:prompt.context
-  let lastselected = s:cmpwin.get_selected_word()
+  let lastselected = s:cmpwin.get_selection()
   let CanceledFunc = s:prompt.get_exitfunc_elms(a:funcname)
   call s:cmpwin.close()
   wincmd p
@@ -331,11 +331,11 @@ function! s:CmpWin._get_buildelm() "{{{
   return [candidates, height]
 endfunction
 "}}}
-function! s:CmpWin.update_candidates_on_insert_selection() "{{{
+function! s:CmpWin.update_candidates_after_insert_selection() "{{{
   let save_candidates = copy(self._candidates)
   call self.update_candidates()
   if self._candidates != save_candidates
-    unlet! self.selected_row
+    unlet! self.__selection_row
   end
 endfunction
 "}}}
@@ -347,16 +347,16 @@ function! s:CmpWin.select_move(direction) "{{{
   if line('.')==save_crrrow && a:direction=~'[jk]'
     exe 'keepj norm!' a:direction=='j' ? 'gg' : 'G'
   endif
-  let self.selected_row = line('.')
+  let self.__selection_row = line('.')
 endfunction
 "}}}
 function! s:CmpWin._get_selected_idx() "{{{
   let height = self._set_page()
-  let self.selected_row = line('.')
-  return height*(self.page-1) + self.selected_row-1
+  let self.__selection_row = line('.')
+  return height*(self.page-1) + self.__selection_row-1
 endfunction
 "}}}
-function! s:CmpWin.get_selected_word() "{{{
+function! s:CmpWin.get_selection() "{{{
   let selected = get(self._candidates, self._get_selected_idx(), '')
   return type(selected)==s:TYPE_DICT ? get(selected, 'Word', '') : selected
 endfunction
@@ -386,8 +386,8 @@ function! s:CmpWin.buildview() "{{{
   call map(candidates, '"> ". v:val')
   call setline(1, candidates)
   setl noma
-  if has_key(self, 'selected_row')
-    call cursor(self.selected_row, 1)
+  if has_key(self, '__selection_row')
+    call cursor(self.__selection_row, 1)
   else
     exe 'keepj norm! '. (self._cw.order=='btt' ? 'G' : 'gg'). '1|'
   end
@@ -499,7 +499,8 @@ function! s:Prompt.insert_history(delta) "{{{
   let self.input = [s:HistHolder.get_nexthist(a:delta), '']
 endfunction
 "}}}
-function! s:Prompt.insert_selection(selectedstr) "{{{
+function! s:Prompt.insert_selection(selection) "{{{
+  call self.update_context()
   let self.OnCmpl = 1
   try
     let str = call(self.insertstrfunc, [self.context, a:selection], s:funcself)
@@ -509,6 +510,7 @@ function! s:Prompt.insert_selection(selectedstr) "{{{
   endtry
   unlet self.OnCmpl
   call self.append(str. self.insertsep)
+  call self.update_context()
 endfunction
 "}}}
 function! s:Prompt.cursor_start() "{{{
@@ -830,13 +832,12 @@ function! s:PrtInsertSelection(...) "{{{
     return
   end
   call s:HistHolder.reset()
-  let selectedstr = s:cmpwin.get_selected_word()
-  if selectedstr==''
+  let selection = s:cmpwin.get_selection()
+  if selection==''
     return
   end
-  call s:prompt.update_context()
-  call s:prompt.insert_selection(selectedstr)
-  call s:cmpwin.update_candidates_on_insert_selection()
+  call s:prompt.insert_selection(selection)
+  call s:cmpwin.update_candidates_after_insert_selection()
   call s:cmpwin.buildview()
   call s:prompt.echo()
 endfunction
