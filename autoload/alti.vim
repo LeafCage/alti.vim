@@ -146,42 +146,42 @@ endfunction
 
 
 "======================================
-let s:HistHolder = {'hists': [], 'idx': 0, 'is_inputsaved': 0}
+let s:HistHolder = {'_hists': [], 'idx': 0, '_is_inputsaved': 0}
 function! s:HistHolder.load() "{{{
   let path = expand(g:alti_cache_dir). '/hist'
-  let self.hists = g:alti_max_history && filereadable(path) ? readfile(path) : []
-  if get(self.hists, 0, "\n")!=''
-    call insert(self.hists, '')
+  let self._hists = g:alti_max_history && filereadable(path) ? readfile(path) : []
+  if get(self._hists, 0, "\n")!=''
+    call insert(self._hists, '')
   endif
 endfunction
 "}}}
 function! s:HistHolder.reset() "{{{
-  let self.is_inputsaved = 0
+  let self._is_inputsaved = 0
   let self.idx = 0
 endfunction
 "}}}
 function! s:HistHolder.save() "{{{
   let str = s:prompt.get_inputline()
-  if str=~'^\s*$' || str==get(self.hists, 1, "\n") || !g:alti_max_history
+  if str=~'^\s*$' || str==get(self._hists, 1, "\n") || !g:alti_max_history
     return
   end
-  call insert(self.hists, str, 1)
-  call alti_l#lim#misc#uniq(self.hists)
-  if len(self.hists) > g:alti_max_history
-    call remove(self.hists, g:alti_max_history, -1)
+  call insert(self._hists, str, 1)
+  call alti_l#lim#misc#uniq(self._hists)
+  if len(self._hists) > g:alti_max_history
+    call remove(self._hists, g:alti_max_history, -1)
   end
-  call s:writecachefile('hist', self.hists)
+  call s:writecachefile('hist', self._hists)
   call self.reset()
 endfunction
 "}}}
 function! s:HistHolder.get_nexthist(delta) "{{{
-  let self.hists[0] = self.is_inputsaved ? self.hists[0] : s:prompt.get_inputline()
-  let self.hists[0] = self.hists[0]==get(self.hists, 1, "\n") ? '' : self.hists[0]
-  let self.is_inputsaved = 1
-  let histlen = len(self.hists)
+  let self._hists[0] = self._is_inputsaved ? self._hists[0] : s:prompt.get_inputline()
+  let self._hists[0] = self._hists[0]==get(self._hists, 1, "\n") ? '' : self._hists[0]
+  let self._is_inputsaved = 1
+  let histlen = len(self._hists)
   let self.idx += a:delta
   let self.idx = self.idx<0 ? 0 : self.idx < histlen ? self.idx : histlen > 1 ? histlen-1 : 0
-  return self.hists[self.idx]
+  return self._hists[self.idx]
 endfunction
 "}}}
 call s:HistHolder.load()
