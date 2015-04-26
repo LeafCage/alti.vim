@@ -314,7 +314,7 @@ function! s:CmpWin._set_page() "{{{
   let self.candidates_len = len(self._candidates)
   let height = min([max([self._cw.min_height, self.candidates_len]), self._cw.max_height, &lines])
   let self.lastpage = (self.candidates_len-1) / height + 1
-  let self.page = self.page > self.lastpage ? self.lastpage : self.page
+  let self.page = self.page > self.lastpage ? 1 : self.page
   if g:alti_enable_statusline
     call s:stlmgr.on_page_setted()
   end
