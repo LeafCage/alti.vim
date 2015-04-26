@@ -133,8 +133,6 @@ g:alti_prompt_mappings				*g:alti_prompt_mappings*
 	let g:alti_default_mappings_base = 'ctrlplike'
 	let g:alti_prompt_mappings = {
 	  \ 'PrtBS()': ['<BS>', '<C-h>'],
-	  \ 'PrtPage(1)': ['<C-f>', '<PageDown>', '<kPageDown>'],
-	  \ 'PrtPage(-1)': ['<C-b>', '<PageUp>', '<kPageUp>'],
 	  \ 'ToggleType(1)': ['<C-]>', '<C-Down>'],
 	  \ 'ToggleType(-1)': ['<C-\>', '<C-Up>'],
 	  \ 'PrtExit()': ['<Esc>', '<C-c>', '<C-g>', '<C-q>'],
@@ -364,10 +362,10 @@ altiバッファ内で標準で定義されるキーマッピングの名称と�
 		ctrlplike :		['<C-l>', '<Right>']
 	PrtPage(1)	候補が多すぎて窓に入り切らないとき、次ページへとめくる
 		standard :		['<C-j>', '<PageDown>', '<kPageDown>']
-		ctrlplike :		['<PageDown>', '<kPageDown>']
+		ctrlplike :		['<C-f>', '<PageDown>', '<kPageDown>']
 	PrtPage(-1)	候補が多すぎて窓に入り切らないとき、前ページへとめくる
 		standard :		['<C-k>', '<PageUp>', '<kPageUp>']
-		ctrlplike :		['<PageUp>', '<kPageUp>']
+		ctrlplike :		['<C-b>', '<PageUp>', '<kPageUp>']
 	PrtSelectMove("j")	候補窓の選択を1つ下へ
 		standard :		['<C-n>', '<Down>']
 		ctrlplike :		['<C-j>', '<Down>']
@@ -397,10 +395,10 @@ altiバッファ内で標準で定義されるキーマッピングの名称と�
 		ctrlplike :		['<CR>']
 	ToggleType(1)	複数のタイプを持つ定義のタイプを次のタイプに切り替える
 		standard :		['<C-x><C-f>', '<C-]>', '<C-Down>']
-		ctrlplike :		['<C-f>', '<C-Down>']
+		ctrlplike :		['<C-x><C-f>', '<C-Down>']
 	ToggleType(-1)	複数のタイプを持つ定義のタイプを前のタイプに切り替える
 		standard :		['<C-x><C-b>', '<C-\>', '<C-Up>']
-		ctrlplike :		['<C-b>', '<C-Up>']
+		ctrlplike :		['<C-x><C-b>', '<C-Up>']
 
 
 ------------------------------------------------------------------------------
