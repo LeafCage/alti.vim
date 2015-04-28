@@ -28,6 +28,29 @@ function! s:refresh() "{{{
   call s:prompt.echo()
 endfunction
 "}}}
+function! s:keyloop() "{{{
+  while exists('s:cmpwin')
+    sil! resize +0
+    redraw
+    try
+      let inputs = alti_l#lim#ui#keybind(s:cmpwin.mappings, {'transit':1, 'expand': 1})
+    catch
+      call s:PrtExit()
+    endtry
+    if inputs=={}
+      call s:PrtExit()
+    elseif inputs.action!=''
+      try
+        exe 'call s:'. inputs.action
+      catch /E1[01]7/
+      endtry
+    elseif inputs.surplus !~# "^[\x80[:cntrl:]]"
+      exe printf('call s:PrtAdd(''%s'')', inputs.surplus)
+    end
+  endwhile
+endfunction
+"}}}
+
 "==================
 function! s:adjust_cmdheight(str) "{{{
   let nlcount = s:get_nlcount(a:str)
@@ -51,7 +74,7 @@ endfunction
 "s:cmpwin
 let s:CWMAX = 10
 let s:CWMIN = 1
-function! s:_get_cw_opts() "{{{
+function! s:get_cw_opts() "{{{
   if !has_key(g:, 'alti_cmpl_window')
     return {'pos': 'bottom', 'order': 'ttb', 'max_height': s:CWMAX, 'min_height': s:CWMIN}
   end
@@ -61,7 +84,17 @@ function! s:_get_cw_opts() "{{{
   return ret
 endfunction
 "}}}
-function! s:_guicursor_enter() "{{{
+function! s:get_mappings() "{{{
+  try
+    let base = g:alti#mappings#{g:alti_default_mappings_base}#define
+  catch /E121/
+    echoerr 'invalid value of g:alti_default_mappings_base: '. g:alti_default_mappings_base
+    let base = g:alti#mappings#standard#define
+  endtry
+  return filter(extend(copy(base), get(g:, 'alti_prompt_mappings', {})), 'v:val!=[]')
+endfunction
+"}}}
+function! s:guicursor_enter() "{{{
   setl cul gcr=a:block-blinkon0-NONE t_ve=
 endfunction
 "}}}
@@ -187,7 +220,7 @@ endfunction
 call s:HistHolder.load()
 
 let s:GlboptHolder = {}
-function! s:newGlboptHolder(define) "{{{
+function! s:newGlboptHolder() "{{{
   let obj = copy(s:GlboptHolder)
   let obj.save_opts = {'magic': &magic, 'splitbelow': &sb, 'report': &report,
     \ 'showcmd': &sc, 'sidescroll': &ss, 'sidescrolloff': &siso, 'insertmode': &im,
@@ -278,7 +311,7 @@ endfunction
 let s:CmpWin = {}
 function! s:newCmpWin(define) "{{{
   let restcmds = {'winrestcmd': winrestcmd(), 'lines': &lines, 'winnr': winnr('$')}
-  let cw_opts = s:_get_cw_opts()
+  let cw_opts = s:get_cw_opts()
   let s:enable_autocmd = 0
   silent! exe 'keepalt' (cw_opts.pos=='top' ? 'topleft' : 'botright') '1new :[AltI]'
   let s:enable_autocmd = 1
@@ -288,10 +321,11 @@ function! s:newCmpWin(define) "{{{
   if v:version > 702
     setl nornu noundofile cc=0
   end
-  call s:_guicursor_enter()
+  call s:guicursor_enter()
   sil! exe 'hi AltILinePre '.( has("gui_running") ? 'gui' : 'cterm' ).'fg=bg'
   sy match AltILinePre '^>'
   let obj = {'_rest': restcmds, '_cw': cw_opts, 'cmplfunc': a:define.cmpl, '_candidates': [], 'page': 1, 'lastpage': 1, 'candidates_len': 0,}
+  let obj.mappings = s:get_mappings()
   call extend(obj, s:CmpWin, 'keep')
   return obj
 endfunction
@@ -382,7 +416,9 @@ endfunction
 function! s:CmpWin.buildview() "{{{
   setl ma
   let [candidates, height]= self._get_buildelm()
-  let candidates = type(get(candidates, 0))==s:TYPE_DICT ? map(candidates, 'has_key(v:val, "View") ? v:val.View : get(v:val, "Word", "")') : candidates
+  if type(get(candidates, 0))==s:TYPE_DICT
+    call map(candidates, 'has_key(v:val, "View") ? v:val.View : get(v:val, "Word", "")')
+  end
   sil! exe '%delete _ | resize' height
   call map(candidates, '"> ". v:val')
   call setline(1, candidates)
@@ -634,37 +670,15 @@ function! alti#init(define, ...) "{{{
   endfor
   call extend(s:funcself, get(a:, 2, {}))
   call map(copy(s:defines.list), 'call(get(v:val, "enter", "s:default_enter"), [], s:funcself)')
-  let s:glboptholder = s:newGlboptHolder(Define)
-  let s:cmpwin = s:newCmpWin(Define)
+  let s:glboptholder = s:newGlboptHolder()
   let s:prompt = s:newPrompt(Define, firstmess)
-  try
-    let mappings = g:alti#mappings#{g:alti_default_mappings_base}#define
-  catch /E121/
-    echoerr 'invalid value of g:alti_default_mappings_base: '. g:alti_default_mappings_base
-    let mappings = g:alti#mappings#standard#define
-  endtry
-  let mappings = extend(copy(mappings), get(g:, 'alti_prompt_mappings', {}))
-  call filter(mappings, 'v:val!=[]')
+  let s:cmpwin = s:newCmpWin(Define)
 
   if g:alti_enable_statusline
     let s:stlmgr = s:newStlMgr(Define)
   end
   call s:refresh()
-  while has_key(s:, 'prompt')
-    sil! resize +0
-    redraw
-    let inputs = alti_l#lim#ui#keybind(mappings, {'transit':1, 'expand': 1})
-    if inputs=={}
-      call s:PrtExit()
-    elseif inputs.action!=''
-      try
-        exe 'call s:'. inputs.action
-      catch /E1[01]7/
-      endtry
-    elseif inputs.surplus !~# "^[\x80[:cntrl:]]"
-      exe printf('call s:PrtAdd(''%s'')', inputs.surplus)
-    end
-  endwhile
+  call s:keyloop()
 endfunction
 "}}}
 

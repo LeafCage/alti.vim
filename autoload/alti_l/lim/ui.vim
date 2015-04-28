@@ -107,7 +107,7 @@ endfunction
 
 "=============================================================================
 "Main:
-function! alti_l#lim#ui#select(prompt, choices, ...) "{{{
+function! alti_l#lim#ui#select(prompt, choices, ...) abort "{{{
   let behavior = a:0 ? a:1 : {}
   if a:choices==[]
     return []
@@ -188,7 +188,7 @@ function! s:_get_choicesdict(choices, expand_keycodes) "{{{
 endfunction
 "}}}
 
-function! alti_l#lim#ui#keybind(binddefs, ...) "{{{
+function! alti_l#lim#ui#keybind(binddefs, ...) abort "{{{
   let behavior = a:0 ? a:1 : {}
   let bindacts = s:_get_bindacts(a:binddefs, function(get(behavior, 'expand') ? 's:_expand_keycodes' : 's:_noexpand'))
   let inputs = s:newInputs(keys(bindacts), behavior)
