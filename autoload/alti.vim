@@ -30,7 +30,6 @@ endfunction
 "}}}
 function! s:keyloop() "{{{
   while exists('s:cmpwin')
-    sil! resize +0
     redraw
     try
       let inputs = alti_l#lim#ui#keybind(s:cmpwin.mappings, {'transit':1, 'expand': 1})
@@ -334,7 +333,7 @@ function! s:CmpWin.update_candidates() "{{{
   try
     let self._candidates = call(self.cmplfunc, [s:prompt.context], s:funcself)
   catch
-    echoerr 'In cmpl-function : '. v:exception
+    call s:prompt.add_errmsg('In cmpl-function: '. v:throwpoint. ' '. v:exception)
     let self._candidates = []
   endtry
 endfunction
@@ -470,6 +469,7 @@ function! s:newPrompt(define, firstmess) "{{{
   let obj.inputline = a:define.default_text
   let obj.static_head = a:define.static_head=='' ? '' : a:define.static_head=~'\s$' ? a:define.static_head : a:define.static_head. ' '
   let obj._firstmess = a:firstmess
+  let obj._errmsgs = []
   let obj.context = s:newContext(obj, [])
   return obj
 endfunction
@@ -483,20 +483,29 @@ function! s:Prompt.get_exitfunc_elms(exitfuncname) "{{{
   return self[a:exitfuncname]
 endfunction
 "}}}
+function! s:Prompt.add_errmsg(errmsg) "{{{
+  call add(self._errmsgs, a:errmsg)
+endfunction
+"}}}
 function! s:Prompt.echo() "{{{
   redraw
   try
     let prtbase = call(self.prtbasefunc, [self.context], s:funcself)
   catch
-    echoerr 'In prompt-function: '. v:throwpoint. v:exception
+    call self.add_errmsg('In prompt-function: '.v:throwpoint. ' '. v:exception)
     let prtbase = '>>> '
   endtry
   call s:adjust_cmdheight(prtbase)
+  let &cmdheight += len(self._errmsgs) + (self._firstmess=='' ? 0 : s:get_nlcount(self._firstmess)+1)
+  echoh Error
+  for msg in self._errmsgs
+    echom msg
+  endfor
+  echoh NONE
   if self._firstmess!=''
-    let &cmdheight += s:get_nlcount(self._firstmess)+1
     echo self._firstmess
   end
-  let self._firstmess=''
+  let [self._errmsgs, self._firstmess] =[[], '']
   let onpostcurs = matchlist(self.input[1], '^\(.\)\(.*\)')
   let inputs = map([self.input[0], get(onpostcurs, 1, ''), get(onpostcurs, 2, '')], 'escape(v:val, ''"\'')')
   let is_cursorspace = inputs[1]=='' || inputs[1]==' '
@@ -543,7 +552,7 @@ function! s:Prompt.insert_selection(selection) "{{{
   try
     let str = call(self.insertstrfunc, [self.context, a:selection], s:funcself)
   catch
-    echoerr 'In insertstr-function: '. v:exception
+    call self.add_errmsg('In insertstr-function: '. v:throwpoint. ' '. v:exception)
     return
   endtry
   unlet self.OnCmpl

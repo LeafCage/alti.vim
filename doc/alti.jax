@@ -176,10 +176,10 @@ alti#split2args({input})			*alti#split2args()*
 
 
 						*alti#init()*
-alti#init({define}, [{firstmessage}, [{bind}]])
+alti#init({define}, [{firstmsg}, [{bind}]])
 	この関数にaltiの定義{define}(辞書)または定義{define}のリストを渡すと
 	altiが実行される。
-	文字列{firstmessage}を渡すと開始直後にのみそれが表示される。
+	文字列{firstmsg}を渡すと開始直後にのみそれが表示される。
 	辞書{bind}を渡すと、{define}で指定した関数内での変数"self"にそれが
 	使われる。(functionにdict属性をつけた場合のみ。詳しくは後述。)
 	定義用の辞書{define}の要素は以下の通り。いずれも省略可能。
