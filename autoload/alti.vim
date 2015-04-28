@@ -624,7 +624,7 @@ function! s:newContext(prompt, action) "{{{
 endfunction
 "}}}
 function! s:Context._filtered_by_inputs(candidates) "{{{
-  let canddicts = map(a:candidates, 's:dictify_{type(v:val)}(v:val)')
+  let canddicts = map(deepcopy(a:candidates), 's:dictify_{type(v:val)}(v:val)')
   let should_del_groups = {}
   for canddict in canddicts
     if index(self.inputs, get(canddict, 'word', ''))!=-1
