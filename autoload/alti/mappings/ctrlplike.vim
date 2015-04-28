@@ -26,8 +26,8 @@ let g:alti#mappings#ctrlplike#define['PrtExit()'] = ['<Esc>', '<C-c>']
 let g:alti#mappings#ctrlplike#define['PrtSubmit()'] = ['<CR>']
 let g:alti#mappings#ctrlplike#define['PrtAction("h")'] = ['<C-s>', '<C-x>', '<C-CR>']
 let g:alti#mappings#ctrlplike#define['PrtAction("v")'] = ['<C-v>', '<S-CR>']
-let g:alti#mappings#ctrlplike#define['ToggleType(1)'] = ['<C-x><C-f>', '<C-Down>']
-let g:alti#mappings#ctrlplike#define['ToggleType(-1)'] = ['<C-x><C-b>', '<C-Up>']
+let g:alti#mappings#ctrlplike#define['ToggleType(1)'] = ['<C-t>', '<C-x><C-f>', '<C-Down>']
+let g:alti#mappings#ctrlplike#define['ToggleType(-1)'] = ['<C-y>', '<C-x><C-b>', '<C-Up>']
 
 
 "=============================================================================
