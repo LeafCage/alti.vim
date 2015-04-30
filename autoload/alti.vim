@@ -129,11 +129,11 @@ function! s:dictify_{s:TYPE_STR}(candidate) "{{{
 endfunction
 "}}}
 function! s:dictify_{s:TYPE_NUM}(candidate) "{{{
-  return {'word': a:candidate, 'is_parm': 0, 'division': {}}
+  return {'word': string(a:candidate), 'is_parm': 0, 'division': {}}
 endfunction
 "}}}
 function! s:dictify_{s:TYPE_FLOAT}(candidate) "{{{
-  return {'word': a:candidate, 'is_parm': 0, 'division': {}}
+  return {'word': string(a:candidate), 'is_parm': 0, 'division': {}}
 endfunction
 "}}}
 function! s:dictify_{s:TYPE_LIST}(candidatelist) "{{{
@@ -144,7 +144,7 @@ function! s:dictify_{s:TYPE_LIST}(candidatelist) "{{{
   if !(type==s:TYPE_NUM || type==s:TYPE_FLOAT || type==s:TYPE_STR && a:candidatelist[0]!='')
     return {}
   end
-  let ret = {'word': a:candidatelist[0], 'is_parm': 0, 'division': {}}
+  let ret = {'word': type==s:TYPE_STR ? a:candidatelist[0] : string(a:candidatelist[0]), 'is_parm': 0, 'division': {}}
   call s:_fill_canddict(ret, a:candidatelist[1:])
   return ret
 endfunction
@@ -610,15 +610,19 @@ function! s:newContext(prompt, action) "{{{
   let obj.action = a:action
   let precursor = a:prompt.input[0]
   let precursorlen = len(precursor)
-  let is_on_edge = precursor[precursorlen-1]!=' ' ? 0 : precursor[precursorlen-2]!='/' || precursor[precursorlen-3]=='/'
+  let is_on_edge = precursor[precursorlen-1]!=' ' ? precursor[precursorlen-1]=='' : precursor[precursorlen-2]!='/' || precursor[precursorlen-3]=='/'
   let obj.precursor = precursor
   let obj.postcursor = a:prompt.input[1]
   let obj.inputline = a:prompt.get_inputline()
   let obj.inputs = s:split_into_words(obj.inputline)
   let obj.leftwords = s:split_into_words(obj.precursor)
-  let obj.arglead = is_on_edge ? '' : get(obj.leftwords, -1, '')
+  let obj.arglead = is_on_edge ? '' : obj.leftwords[-1]
   let obj.preword = is_on_edge ? get(obj.leftwords, -1, '') : get(obj.leftwords, -2, '')
   let obj.leftcount = is_on_edge ? len(obj.leftwords) : len(obj.leftwords)-1
+  let obj._inputs_exc_curword = copy(obj.inputs)
+  if !is_on_edge
+    unlet obj._inputs_exc_curword[obj.leftcount]
+  end
   let obj.cursoridx = precursorlen
   return obj
 endfunction
@@ -627,12 +631,12 @@ function! s:Context._filtered_by_inputs(candidates) "{{{
   let canddicts = map(deepcopy(a:candidates), 's:dictify_{type(v:val)}(v:val)')
   let should_del_groups = {}
   for canddict in canddicts
-    if index(self.inputs, get(canddict, 'word', ''))!=-1
+    if index(self._inputs_exc_curword, get(canddict, 'word', ''))!=-1
       call extend(should_del_groups, canddict.division)
     end
   endfor
   let expr = should_del_groups=={} ? '' : '!('. join(map(keys(should_del_groups), '"has_key(v:val.division, ''". v:val. "'')"'), '||'). ') &&'
-  call filter(canddicts, 'v:val!={} && ( v:val.is_parm || '. expr. ' index(self.inputs, v:val.word)==-1 )')
+  call filter(canddicts, 'v:val!={} && ( v:val.is_parm || '. expr. ' index(self._inputs_exc_curword, v:val.word)==-1 )')
   return map(canddicts, 'v:val.word')
 endfunction
 "}}}
