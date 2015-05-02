@@ -124,55 +124,77 @@ function! s:split_into_words(cmdline) "{{{
   return split(a:cmdline, '\%(\\\@!<\\\)\@<!\s\+')
 endfunction
 "}}}
-function! s:dictify_{s:TYPE_STR}(candidate) "{{{
-  return {'word': a:candidate, 'is_parm': 0, 'division': {}}
-endfunction
-"}}}
-function! s:dictify_{s:TYPE_NUM}(candidate) "{{{
-  return {'word': string(a:candidate), 'is_parm': 0, 'division': {}}
-endfunction
-"}}}
-function! s:dictify_{s:TYPE_FLOAT}(candidate) "{{{
-  return {'word': string(a:candidate), 'is_parm': 0, 'division': {}}
-endfunction
-"}}}
-function! s:dictify_{s:TYPE_LIST}(candidatelist) "{{{
-  if a:candidatelist==[]
-    return {}
-  end
-  let type = type(a:candidatelist[0])
-  if !(type==s:TYPE_NUM || type==s:TYPE_FLOAT || type==s:TYPE_STR && a:candidatelist[0]!='')
-    return {}
-  end
-  let ret = {'word': type==s:TYPE_STR ? a:candidatelist[0] : string(a:candidatelist[0]), 'is_parm': 0, 'division': {}}
-  call s:_fill_canddict(ret, a:candidatelist[1:])
-  return ret
-endfunction
-"}}}
-function! s:dictify_2(invalid) "{{{
-  return {}
-endfunction
-"}}}
-function! s:dictify_{s:TYPE_DICT}(invalid) "{{{
-  return {}
-endfunction
-"}}}
-function! s:_fill_canddict(canddict, groups) "{{{
-  for group in a:groups
-    let type = type(group)
+function! s:divisionholder(holder, divisions) "{{{
+  for division in a:divisions
+    let type = type(division)
     if type==s:TYPE_LIST
-      call s:_fill_canddict(a:canddict, group)
+      call s:divisionholder(a:holder, division)
     elseif type==s:TYPE_STR
-      if group=='__PARM'
-        let a:canddict.is_parm = 1
-      elseif group!=''
-        let a:canddict.division[group] = 1
+      if division!=''
+        let a:holder[division] = 1
       end
     elseif type==s:TYPE_NUM || type==s:TYPE_FLOAT
-      let a:canddict.division[string(group)] = 1
+      let a:holder[string(division)] = 1
     end
-    unlet group
+    unlet division
   endfor
+  return a:holder
+endfunction
+"}}}
+let s:Assorter = {}
+function! s:newAssorter(inputs) "{{{
+  let obj = copy(s:Assorter)
+  let obj.inputs = a:inputs
+  let obj.should_del_groups = {}
+  let obj.candidates = []
+  let obj.divisions = []
+  return obj
+endfunction
+"}}}
+function! s:Assorter.assort_candidates(candidates) "{{{
+  for cand in a:candidates
+    let type = type(cand)
+    if type!=s:TYPE_LIST
+      if index(self.inputs, (type==s:TYPE_STR ? cand : string(cand)))==-1
+        call self._add([cand], [{}])
+      end
+    elseif cand!=[]
+      call self._assort_listcand(cand)
+    end
+    unlet cand
+  endfor
+endfunction
+"}}}
+function! s:Assorter._assort_listcand(cand) "{{{
+  let type = type(a:cand[0])
+  if !(type==s:TYPE_NUM || type==s:TYPE_FLOAT || type==s:TYPE_STR && a:cand[0]!='')
+    return
+  end
+  let division = s:divisionholder({}, a:cand[1:])
+  if index(self.inputs, (type==s:TYPE_STR ? a:cand[0] : string(a:cand[0])))==-1
+    call self._add([a:cand[0]], [division])
+    return
+  end
+  call extend(self.should_del_groups, division)
+  if has_key(division, '__PARM')
+    call self._add([a:cand[0]], [division])
+  end
+endfunction
+"}}}
+function! s:Assorter._add(cand, division) "{{{
+  let self.candidates += a:cand
+  let self.divisions += a:division
+endfunction
+"}}}
+function! s:Assorter.remove_del_grouped_candidates() "{{{
+  if has_key(self.should_del_groups, '__PARM')
+    unlet self.should_del_groups.__PARM
+  end
+  if self.should_del_groups!={}
+    let divisions = self.divisions
+    call filter(self.candidates, 'has_key(divisions[v:key], "__PARM") || !('. join(map(keys(self.should_del_groups), '"has_key(divisions[v:key], ''". v:val. "'')"'), '||'). ')')
+  end
+  return self.candidates
 endfunction
 "}}}
 
@@ -628,16 +650,9 @@ function! s:newContext(prompt, action) "{{{
 endfunction
 "}}}
 function! s:Context._filtered_by_inputs(candidates) "{{{
-  let canddicts = map(deepcopy(a:candidates), 's:dictify_{type(v:val)}(v:val)')
-  let should_del_groups = {}
-  for canddict in canddicts
-    if index(self._inputs_exc_curword, get(canddict, 'word', ''))!=-1
-      call extend(should_del_groups, canddict.division)
-    end
-  endfor
-  let expr = should_del_groups=={} ? '' : '!('. join(map(keys(should_del_groups), '"has_key(v:val.division, ''". v:val. "'')"'), '||'). ') &&'
-  call filter(canddicts, 'v:val!={} && ( v:val.is_parm || '. expr. ' index(self._inputs_exc_curword, v:val.word)==-1 )')
-  return map(canddicts, 'v:val.word')
+  let assorter = s:newAssorter(self._inputs_exc_curword)
+  call assorter.assort_candidates(a:candidates)
+  return assorter.remove_del_grouped_candidates()
 endfunction
 "}}}
 function! s:Context.filtered(candidates) "{{{
