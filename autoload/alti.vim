@@ -22,10 +22,14 @@ function! s:get_getreg_mappings() "{{{
 endfunction
 "}}}
 function! s:refresh() "{{{
-  call b:alti_prompt.update_context()
   call b:alti_cmplwin.update_candidates()
-  call b:alti_cmplwin.buildview()
+  call s:buildview()
   call b:alti_prompt.echo()
+endfunction
+"}}}
+function! s:buildview() "{{{
+  call b:alti_cmplwin.buildview()
+  call s:Context_set_selection()
 endfunction
 "}}}
 function! s:keyloop() "{{{
@@ -47,6 +51,25 @@ function! s:keyloop() "{{{
       exe printf('call s:PrtAdd(''%s'')', inputs.surplus)
     end
   endwhile
+endfunction
+"}}}
+function! s:exit_process(funcname) "{{{
+  let context = b:alti_context
+  let line = b:alti_prompt.static_head. context.inputline
+  let Exit__Func = b:alti_prompt.get_exitfunc_elms(a:funcname)
+  call b:alti_cmplwin.close()
+  wincmd p
+  call call(Exit__Func, [context, line], get(s:, 'funcself', {}))
+  call s:_force_imoff()
+  if !exists('b:alti_cmplwin')
+    unlet! s:funcself
+  end
+endfunction
+"}}}
+function! s:_force_imoff() "{{{
+  let save_imd = &imd
+  set imdisable
+  let &imd = save_imd
 endfunction
 "}}}
 
@@ -95,28 +118,6 @@ endfunction
 "}}}
 function! s:guicursor_enter() "{{{
   setl cul gcr=a:block-blinkon0-NONE t_ve=
-endfunction
-"}}}
-"Prt
-function! s:exit_process(funcname) "{{{
-  call b:alti_prompt.update_context()
-  let context = b:alti_prompt.context
-  let line = b:alti_prompt.static_head. context.inputline
-  let lastselected = b:alti_cmplwin.get_selection()
-  let CanceledFunc = b:alti_prompt.get_exitfunc_elms(a:funcname)
-  call b:alti_cmplwin.close()
-  wincmd p
-  try
-    call call(CanceledFunc, [context, line, lastselected], get(s:, 'funcself', {}))
-  catch /E118/
-    call call(CanceledFunc, [context, line], get(s:, 'funcself', {}))
-  endtry
-  let save_imd = &imd
-  set imdisable
-  let &imd = save_imd
-  if !exists('b:alti_cmplwin')
-    unlet! s:funcself
-  end
 endfunction
 "}}}
 "Context
@@ -353,7 +354,7 @@ endfunction
 "}}}
 function! s:CmplWin.update_candidates() "{{{
   try
-    let self._candidates = call(self.cmplfunc, [b:alti_prompt.context], s:funcself)
+    let self._candidates = call(self.cmplfunc, [b:alti_context], s:funcself)
   catch
     call b:alti_prompt.add_errmsg('In cmpl-function: '. v:throwpoint. ' '. v:exception)
     let self._candidates = []
@@ -412,12 +413,7 @@ function! s:CmplWin._get_selected_idx() "{{{
   return height*(self.page-1) + self.__selection_row-1
 endfunction
 "}}}
-function! s:CmplWin.get_selection() "{{{
-  let selected = get(self._candidates, self._get_selected_idx(), '')
-  return type(selected)==s:TYPE_DICT ? get(selected, 'Word', '') : selected
-endfunction
-"}}}
-function! s:CmplWin.get_selected_raw() "{{{
+function! s:CmplWin.get_rawselection() "{{{
   return get(self._candidates, self._get_selected_idx(), '')
 endfunction
 "}}}
@@ -492,7 +488,6 @@ function! s:newPrompt(define, firstmess) "{{{
   let obj.static_head = a:define.static_head=='' ? '' : a:define.static_head=~'\s$' ? a:define.static_head : a:define.static_head. ' '
   let obj._firstmess = a:firstmess
   let obj._errmsgs = []
-  let obj.context = s:newContext(obj, [])
   return obj
 endfunction
 "}}}
@@ -512,7 +507,7 @@ endfunction
 function! s:Prompt.echo() "{{{
   redraw
   try
-    let prtbase = call(self.prtbasefunc, [self.context], s:funcself)
+    let prtbase = call(self.prtbasefunc, [b:alti_context], s:funcself)
   catch
     call self.add_errmsg('In prompt-function: '.v:throwpoint. ' '. v:exception)
     let prtbase = '>>> '
@@ -568,18 +563,16 @@ function! s:Prompt.insert_history(delta) "{{{
   let self.input = [s:HistHolder.get_nexthist(a:delta), '']
 endfunction
 "}}}
-function! s:Prompt.insert_selection(selection) "{{{
-  call self.update_context()
+function! s:Prompt.insert_selection() "{{{
   let self.OnCmpl = 1
   try
-    let str = call(self.insertstrfunc, [self.context, a:selection], s:funcself)
+    let str = call(self.insertstrfunc, [b:alti_context], s:funcself)
   catch
     call self.add_errmsg('In insertstr-function: '. v:throwpoint. ' '. v:exception)
     return
   endtry
   unlet self.OnCmpl
   call self.append(str. self.insertsep)
-  call self.update_context()
 endfunction
 "}}}
 function! s:Prompt.cursor_start() "{{{
@@ -614,43 +607,62 @@ function! s:Prompt.cursor_right() "{{{
   return 1
 endfunction
 "}}}
-function! s:Prompt.update_context(...) "{{{
-  let action = a:0 ? a:1 : []
-  if self._should_update_context()
-    let self.context = s:newContext(self, action)
-  end
-endfunction
-"}}}
-function! s:Prompt._should_update_context() "{{{
-  return !(self.input[0]==#self.context.precursor && self.input[1]==#self.context.postcursor)
+function! s:Prompt.should_update_context() "{{{
+  return !(self.input[0] ==# b:alti_context.precursor && self.input[1] ==# b:alti_context.postcursor)
 endfunction
 "}}}
 
 let s:Context = {}
-function! s:newContext(prompt, action) "{{{
+function! s:newContext(define) "{{{
   let obj = copy(s:Context)
-  let obj.action = a:action
-  let precursor = a:prompt.input[0]
-  let precursorlen = len(precursor)
-  let is_on_edge = precursor[precursorlen-1]!=' ' ? precursor[precursorlen-1]=='' : precursor[precursorlen-2]!='/' || precursor[precursorlen-3]=='/'
-  let obj.precursor = precursor
-  let obj.postcursor = a:prompt.input[1]
-  let obj.inputline = a:prompt.get_inputline()
-  let obj.inputs = s:split_into_words(obj.inputline)
-  let obj.leftwords = s:split_into_words(obj.precursor)
-  let obj.arglead = is_on_edge ? '' : obj.leftwords[-1]
-  let obj.preword = is_on_edge ? get(obj.leftwords, -1, '') : get(obj.leftwords, -2, '')
-  let obj.leftcount = is_on_edge ? len(obj.leftwords) : len(obj.leftwords)-1
-  let obj._inputs_exc_curword = copy(obj.inputs)
-  if !is_on_edge
-    unlet obj._inputs_exc_curword[obj.leftcount]
-  end
-  let obj.cursoridx = precursorlen
+  let obj.static_head = a:define.static_head
+  let obj.rawselection = ''
   return obj
 endfunction
 "}}}
+function! s:Context_update_prtinfo() "{{{
+  let self = b:alti_context
+  let precursor = b:alti_prompt.input[0]
+  let precursorlen = len(precursor)
+  let is_on_edge = precursor[precursorlen-1]!=' ' ? precursor[precursorlen-1]=='' : precursor[precursorlen-2]!='/' || precursor[precursorlen-3]=='/'
+  let self.precursor = precursor
+  let self.postcursor = b:alti_prompt.input[1]
+  let self.inputline = b:alti_prompt.get_inputline()
+  let self.leftwords = s:split_into_words(self.precursor)
+  let self.arglead = is_on_edge ? '' : self.leftwords[-1]
+  let self.preword = is_on_edge ? get(self.leftwords, -1, '') : get(self.leftwords, -2, '')
+  let self.leftcount = is_on_edge ? len(self.leftwords) : len(self.leftwords)-1
+  let self.inputs = s:split_into_words(self.inputline)
+  if !is_on_edge
+    unlet self.inputs[self.leftcount]
+  end
+  let self.cursoridx = precursorlen
+endfunction
+"}}}
+function! s:Context_set_selection() "{{{
+  let self = b:alti_context
+  let rawselection = b:alti_cmplwin.get_rawselection()
+  unlet self.rawselection
+  let self.rawselection = rawselection
+  let type = type(rawselection)
+  if type==s:TYPE_STR
+    let self.selection = rawselection
+  elseif type == s:TYPE_DICT
+    let selection = has_key(rawselection, 'insert') ? rawselection.insert : get(rawselection, 'word', '')
+    let self.selection = type(selection)==s:TYPE_STR ? selection : string(selection)
+  else
+    let self.selection = string(rawselection)
+  end
+endfunction
+"}}}
+function! s:Context_update_as_needed() "{{{
+  if b:alti_prompt.should_update_context()
+    call s:Context_update_prtinfo()
+  end
+endfunction
+"}}}
 function! s:Context._filtered_by_inputs(candidates) "{{{
-  let assorter = s:newAssorter(self._inputs_exc_curword)
+  let assorter = s:newAssorter(self.inputs)
   call assorter.assort_candidates(a:candidates)
   return assorter.remove_del_grouped_candidates()
 endfunction
@@ -684,7 +696,9 @@ let s:dfl_define = {'name': '', 'default_text': '', 'static_head': '', 'prompt':
   \ 'insertstr': 'alti#insertstr_posttab_annotation', 'canceled': 's:default_canceled', 'submitted': 's:default_submitted',
   \ 'append_sep': 1, 'prompt_hl': 'Comment'}
 function! alti#init(define, ...) "{{{
-  if exists('b:alti_cmplwin')| return| end
+  if exists('b:alti_cmplwin')
+    return
+  end
   let firstmess = a:0 ? substitute(a:1, "^\n", '', '') : ''
   let s:defines = {'idx': 0}
   let s:defines.list = type(a:define)!=type([]) ? [a:define] : a:define==[] ? [{}] : a:define
@@ -699,12 +713,13 @@ function! alti#init(define, ...) "{{{
   call extend(s:funcself, get(a:, 2, {}))
   call map(copy(s:defines.list), 'call(get(v:val, "enter", "s:default_enter"), [], s:funcself)')
   let s:glboptholder = s:newGlboptHolder()
-  let b:alti_prompt = s:newPrompt(Define, firstmess)
   let b:alti_cmplwin = s:newCmplWin(Define)
-
+  let b:alti_prompt = s:newPrompt(Define, firstmess)
   if g:alti_enable_statusline
     let s:stlmgr = s:newStlMgr(Define)
   end
+  let b:alti_context = s:newContext(Define)
+  call s:Context_update_prtinfo()
   call s:refresh()
   call s:keyloop()
 endfunction
@@ -725,19 +740,19 @@ endfunction
 "}}}
 
 "==================
-function! alti#insertstr_posttab_annotation(context, selected) "{{{
+function! alti#insertstr_posttab_annotation(context) "{{{
   call alti#on_insertstr_rm_arglead()
-  return substitute(a:selected, '\t.*$', '', '')
+  return substitute(a:context.selection, '\t.*$', '', '')
 endfunction
 "}}}
-function! alti#insertstr_pretab_annotation(context, selected) "{{{
+function! alti#insertstr_pretab_annotation(context) "{{{
   call alti#on_insertstr_rm_arglead()
-  return substitute(a:selected, '^.*\t', '', '')
+  return substitute(a:context.selection, '^.*\t', '', '')
 endfunction
 "}}}
-function! alti#insertstr_raw(context, selected) "{{{
+function! alti#insertstr(context) "{{{
   call alti#on_insertstr_rm_arglead()
-  return a:selected
+  return a:contextstr.selection
 endfunction
 "}}}
 
@@ -753,14 +768,14 @@ function! s:default_cmpl(context) "{{{
   return []
 endfunction
 "}}}
-function! s:default_submitted(context, input, lastselected) "{{{
+function! s:default_submitted(context, input) "{{{
   if a:input =~ '^\s*$'
     return
   end
   exe a:input
 endfunction
 "}}}
-function! s:default_canceled(context, input, lastselected) "{{{
+function! s:default_canceled(context, input) "{{{
 endfunction
 "}}}
 
@@ -768,30 +783,35 @@ endfunction
 function! s:PrtAdd(char) "{{{
   call s:HistHolder.reset()
   call b:alti_prompt.append(a:char)
+  call s:Context_update_prtinfo()
   call s:refresh()
 endfunction
 "}}}
 function! s:PrtBS() "{{{
   call s:HistHolder.reset()
   call b:alti_prompt.bs()
+  call s:Context_update_as_needed()
   call s:refresh()
 endfunction
 "}}}
 function! s:PrtDelete() "{{{
   call s:HistHolder.reset()
   call b:alti_prompt.delete()
+  call s:Context_update_as_needed()
   call s:refresh()
 endfunction
 "}}}
 function! s:PrtDeleteWord() "{{{
   call s:HistHolder.reset()
   call b:alti_prompt.delete_word()
+  call s:Context_update_as_needed()
   call s:refresh()
 endfunction
 "}}}
 function! s:PrtClear() "{{{
   call s:HistHolder.reset()
   call b:alti_prompt.clear()
+  call s:Context_update_as_needed()
   call s:refresh()
 endfunction
 "}}}
@@ -821,6 +841,7 @@ function! s:PrtHistory(delta) "{{{
     return
   end
   call b:alti_prompt.insert_history(a:delta)
+  call s:Context_update_as_needed()
   call s:refresh()
 endfunction
 "}}}
@@ -836,6 +857,7 @@ function! s:PrtCurStart() "{{{
   if !b:alti_prompt.cursor_start()
     return
   end
+  call s:Context_update_prtinfo()
   call s:refresh()
 endfunction
 "}}}
@@ -843,6 +865,7 @@ function! s:PrtCurEnd() "{{{
   if !b:alti_prompt.cursor_end()
     return
   end
+  call s:Context_update_prtinfo()
   call s:refresh()
 endfunction
 "}}}
@@ -850,6 +873,7 @@ function! s:PrtCurLeft() "{{{
   if !b:alti_prompt.cursor_left()
     return
   end
+  call s:Context_update_prtinfo()
   call s:refresh()
 endfunction
 "}}}
@@ -857,31 +881,33 @@ function! s:PrtCurRight() "{{{
   if !b:alti_prompt.cursor_right()
     return
   end
+  call s:Context_update_prtinfo()
   call s:refresh()
 endfunction
 "}}}
 function! s:PrtPage(delta) "{{{
   call b:alti_cmplwin.turn_page(a:delta)
-  call b:alti_cmplwin.buildview()
+  call s:buildview()
 endfunction
 "}}}
 function! s:PrtSelectMove(direction) "{{{
   call b:alti_cmplwin.select_move(a:direction)
+  call s:Context_set_selection()
 endfunction
 "}}}
 function! s:PrtInsertSelection(...) "{{{
   let substr = a:0 ? a:1 : ''
-  let selection = b:alti_cmplwin.get_selection()
-  if substr!='' && (selection=='' || match(b:alti_prompt.input[0], '\%([^\\]\\\)\@<!\\$')!=-1)
+  if substr!='' && (b:alti_context.selection=='' || match(b:alti_prompt.input[0], '\%([^\\]\\\)\@<!\\$')!=-1)
     call s:PrtAdd(substr)
     return
-  elseif selection==''
+  elseif b:alti_context.selection==''
     return
   end
   call s:HistHolder.reset()
-  call b:alti_prompt.insert_selection(selection)
+  call b:alti_prompt.insert_selection()
+  call s:Context_update_prtinfo()
   call b:alti_cmplwin.update_candidates_after_insert_selection()
-  call b:alti_cmplwin.buildview()
+  call s:buildview()
   call b:alti_prompt.echo()
 endfunction
 "}}}
@@ -892,17 +918,9 @@ function! s:PrtDetailSelection() "{{{
   end
   echo detail
   call getchar()
-  call b:alti_cmplwin.buildview()
+  call s:buildview()
   call b:alti_prompt.echo()
 endfunction
-"}}}
-function! s:PrtActSelection(action) "{{{
-  let selected = b:alti_cmplwin.get_selected_raw()
-  call b:alti_prompt.update_context([a:action, selected])
-  call b:alti_cmplwin.update_candidates()
-  call b:alti_cmplwin.buildview()
-endfunction
-"}}}
 function! s:PrtExit() "{{{
   call s:exit_process('canceledfunc')
 endfunction
@@ -925,7 +943,8 @@ function! s:ToggleType(delta) "{{{
   let b:alti_prompt.prtbasefunc = define.prompt
   let b:alti_prompt.submittedfunc = define.submitted
   let b:alti_prompt.canceledfunc = define.canceled
-  let b:alti_prompt.static_head = a:define.static_head=='' ? '' : a:define.static_head=~'\s$' ? a:define.static_head : a:define.static_head. ' '
+  let b:alti_prompt.static_head = define.static_head=='' ? '' : define.static_head=~'\s$' ? define.static_head : define.static_head. ' '
+  let b:alti_context.static_head = define.static_head
   exe 'hi link AltIPrtBase' define.prompt_hl
   call s:refresh()
   if g:alti_enable_statusline
