@@ -130,9 +130,12 @@ g:alti_prompt_mappings				*g:alti_prompt_mappings*
 	|alti-Alti-key-mappings|で定義されたキーマッピングを上書きする。
 	値に空リストを定義すると、そのキーマッピングは無効となる。
 	Example: >
-	let g:alti_default_mappings_base = 'ctrlplike'
 	let g:alti_prompt_mappings = {
-	  \ 'PrtBS()': ['<BS>', '<C-h>'],
+	  \ 'PrtCurLeft()': ['<C-k>', '<Left>'],
+	  \ 'PrtCurRight()': ['<C-l>', '<Right>'],
+	  \ 'PrtPage(1)': ['<C-f>', '<PageDown>'],
+	  \ 'PrtPage(-1)': ['<C-b>', '<PageUp>'],
+	  \ 'PrtSubmit()': ['<CR>', '<C-j>'],
 	  \ 'ToggleType(1)': ['<C-]>', '<C-Down>'],
 	  \ 'ToggleType(-1)': ['<C-\>', '<C-Up>'],
 	  \ 'PrtExit()': ['<Esc>', '<C-c>', '<C-g>', '<C-q>'],
@@ -168,11 +171,6 @@ alti#on_insertstr_rm_arglead()		*alti#on_insertstr_rm_arglead()*
 	。現在入力されている文字列の中から ArgLead を除去する。これにより、
 	insertstr関数が返す文字列がそのまま補完で挿入される文字列として扱われ
 	るようになる。
-
-
-alti#split2args({input})			*alti#split2args()*
-	{input}文字列をバックスラッシュでエスケープされていない空白文字で分割
-	したリストを返す。
 
 
 						*alti#init()*

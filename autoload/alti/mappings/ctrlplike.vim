@@ -18,16 +18,14 @@ let g:alti#mappings#ctrlplike#define['PrtPage(1)'] = ['<C-f>', '<PageDown>', '<k
 let g:alti#mappings#ctrlplike#define['PrtPage(-1)'] = ['<C-b>', '<PageUp>', '<kPageUp>']
 let g:alti#mappings#ctrlplike#define['PrtSelectMove("j")'] = ['<C-j>', '<Down>']
 let g:alti#mappings#ctrlplike#define['PrtSelectMove("k")'] = ['<C-k>', '<Up>']
-let g:alti#mappings#ctrlplike#define['PrtSelectMove("t")'] = ['<Home>', '<kHome>']
-let g:alti#mappings#ctrlplike#define['PrtSelectMove("b")'] = ['<End>', '<kEnd>']
+let g:alti#mappings#ctrlplike#define['PrtSelectMove("t")'] = ['<C-x>gg', '<C-t>', '<Home>', '<kHome>']
+let g:alti#mappings#ctrlplike#define['PrtSelectMove("b")'] = ['<C-x>G', '<C-z>', '<End>', '<kEnd>']
 let g:alti#mappings#ctrlplike#define['PrtInsertSelection()'] = ['<Tab>']
 let g:alti#mappings#ctrlplike#define['PrtDetailSelection()'] = ['<C-g>']
 let g:alti#mappings#ctrlplike#define['PrtExit()'] = ['<Esc>', '<C-c>']
 let g:alti#mappings#ctrlplike#define['PrtSubmit()'] = ['<CR>']
-let g:alti#mappings#ctrlplike#define['PrtAction("h")'] = ['<C-s>', '<C-x>', '<C-CR>']
-let g:alti#mappings#ctrlplike#define['PrtAction("v")'] = ['<C-v>', '<S-CR>']
-let g:alti#mappings#ctrlplike#define['ToggleType(1)'] = ['<C-t>', '<C-x><C-f>', '<C-Down>']
-let g:alti#mappings#ctrlplike#define['ToggleType(-1)'] = ['<C-y>', '<C-x><C-b>', '<C-Up>']
+let g:alti#mappings#ctrlplike#define['ToggleType(1)'] = ['<C-^>', '<C-x><C-f>', '<C-Down>']
+let g:alti#mappings#ctrlplike#define['ToggleType(-1)'] = ['<C-x><C-b>', '<C-Up>']
 
 
 "=============================================================================

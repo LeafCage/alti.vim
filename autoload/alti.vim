@@ -110,7 +110,7 @@ function! s:get_mappings() "{{{
   try
     let base = g:alti#mappings#{g:alti_default_mappings_base}#define
   catch /E121/
-    echoerr 'invalid value of g:alti_default_mappings_base: '. g:alti_default_mappings_base
+    echom 'invalid value of g:alti_default_mappings_base: '. g:alti_default_mappings_base
     let base = g:alti#mappings#standard#define
   endtry
   return filter(extend(copy(base), get(g:, 'alti_prompt_mappings', {})), 'v:val!=[]')
@@ -356,7 +356,7 @@ function! s:CmplWin.update_candidates() "{{{
   try
     let self._candidates = call(self.cmplfunc, [b:alti_context], s:funcself)
   catch
-    call b:alti_prompt.add_errmsg('In cmpl-function: '. v:throwpoint. ' '. v:exception)
+    call b:alti_prompt.add_errmsg('cmpl-function: '. v:throwpoint. ' '. v:exception)
     let self._candidates = []
   endtry
 endfunction
@@ -509,7 +509,7 @@ function! s:Prompt.echo() "{{{
   try
     let prtbase = call(self.prtbasefunc, [b:alti_context], s:funcself)
   catch
-    call self.add_errmsg('In prompt-function: '.v:throwpoint. ' '. v:exception)
+    call self.add_errmsg('prompt-function: '.v:throwpoint. ' '. v:exception)
     let prtbase = '>>> '
   endtry
   call s:adjust_cmdheight(prtbase)
@@ -568,7 +568,7 @@ function! s:Prompt.insert_selection() "{{{
   try
     let str = call(self.insertstrfunc, [b:alti_context], s:funcself)
   catch
-    call self.add_errmsg('In insertstr-function: '. v:throwpoint. ' '. v:exception)
+    call self.add_errmsg('insertstr-function: '. v:throwpoint. ' '. v:exception)
     return
   endtry
   unlet self.OnCmpl
@@ -732,10 +732,6 @@ function! alti#on_insertstr_rm_arglead() "{{{
   end
   call b:alti_prompt.rm_arglead()
   let b:alti_cmplwin.OnCmpl = 0
-endfunction
-"}}}
-function! alti#split2args(input) "{{{
-  return split(a:input, '\%(\\\@<!\s\)\+')
 endfunction
 "}}}
 
