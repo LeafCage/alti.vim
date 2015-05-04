@@ -4,8 +4,8 @@ scriptencoding utf-8
 "=============================================================================
 aug AltI
   autocmd!
-  autocmd BufEnter :[AltI]   if s:enable_autocmd && has_key(s:, 'alti_bufnr') && s:alti_bufnr > 0| exe s:alti_bufnr.'bw!'| end
-  autocmd BufLeave :[AltI]   if s:enable_autocmd && exists('b:alti_cmplwin')| call b:alti_cmplwin.close()| end
+  autocmd BufEnter :\[AltI]   if s:enable_autocmd && has_key(s:, 'alti_bufnr') && s:alti_bufnr > 0| exe s:alti_bufnr.'bw!'| end
+  autocmd BufLeave :\[AltI]   if s:enable_autocmd && exists('b:alti_cmplwin')| call b:alti_cmplwin.close()| end
 aug END
 let s:enable_autocmd = 1
 "--------------------------------------
