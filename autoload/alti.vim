@@ -15,6 +15,16 @@ let s:TYPE_STR = type('')
 let s:TYPE_NUM = type(0)
 let s:TYPE_FLOAT = type(0.0)
 
+function! s:get_mappings(prompt) "{{{
+  try
+    let base = g:alti#mappings#{g:alti_default_mappings_base}#define
+  catch /E121/
+    call a:prompt.add_errmsg('invalid value of g:alti_default_mappings_base: "'. g:alti_default_mappings_base. '"')
+    let base = g:alti#mappings#standard#define
+  endtry
+  return filter(extend(copy(base), get(g:, 'alti_prompt_mappings', {})), 'v:val!=[]')
+endfunction
+"}}}
 function! s:get_getreg_mappings() "{{{
   let ret = {'expr': ['='], '<cword>': ['<C-w>'], '<cWORD>': ['<C-a>'], '<cfile>': ['<C-p>']}
   call extend(ret, get(g:, 'alti_getreg_mappings', {}))
@@ -36,7 +46,7 @@ function! s:keyloop() "{{{
   while exists('b:alti_cmplwin')
     redraw
     try
-      let inputs = alti_l#lim#ui#keybind(b:alti_cmplwin.mappings, {'transit':1, 'expand': 1})
+      let inputs = alti_l#lim#ui#keybind(b:alti_prompt.mappings, {'transit':1, 'expand': 1})
     catch
       call s:PrtExit()
     endtry
@@ -74,25 +84,6 @@ endfunction
 "}}}
 
 "==================
-function! s:adjust_cmdheight(str) "{{{
-  let nlcount = s:get_nlcount(a:str)
-  let &cmdheight = nlcount >= s:glboptholder.get_optval('cmdheight') ? nlcount+1 : s:glboptholder.get_optval('cmdheight')
-endfunction
-"}}}
-function! s:get_nlcount(str) "{{{
-  return count(split(a:str, '\zs'), "\n")
-endfunction
-"}}}
-"==================
-"s:HistHolder
-function! s:writecachefile(filename, list) "{{{
-  let dir = expand(g:alti_cache_dir)
-  if !isdirectory(dir)
-    call mkdir(dir, 'p')
-  end
-  call writefile(a:list, dir. '/'. a:filename)
-endfunction
-"}}}
 "b:alti_cmplwin
 let s:CWMAX = 10
 let s:CWMIN = 1
@@ -104,16 +95,6 @@ function! s:get_cw_opts() "{{{
   let [ret.max, ret.min] = [max([ret.max, 1]), max([ret.min, 1])]
   let ret.min = min([ret.min, ret.max])
   return ret
-endfunction
-"}}}
-function! s:get_mappings() "{{{
-  try
-    let base = g:alti#mappings#{g:alti_default_mappings_base}#define
-  catch /E121/
-    echom 'invalid value of g:alti_default_mappings_base: '. g:alti_default_mappings_base
-    let base = g:alti#mappings#standard#define
-  endtry
-  return filter(extend(copy(base), get(g:, 'alti_prompt_mappings', {})), 'v:val!=[]')
 endfunction
 "}}}
 function! s:guicursor_enter() "{{{
@@ -459,7 +440,14 @@ function! s:CmplWin.close() "{{{
   if winnr('$')==1
     bwipeout!
   else
-    try| bunload!| catch| close| endtry
+    try
+      bunload!
+    catch
+      try
+        close
+      catch
+      endtry
+    endtry
   end
   let s:enable_autocmd = 1
   call s:glboptholder.untap()
@@ -468,7 +456,7 @@ function! s:CmplWin.close() "{{{
   end
   echo
   redraw
-  unlet! s:regholder s:defines s:stlmgr
+  unlet! s:regholder s:defines s:stlmgr s:_height
 endfunction
 "}}}
 
@@ -486,8 +474,9 @@ function! s:newPrompt(define, firstmess) "{{{
   let obj.canceledfunc = a:define.canceled
   let obj.inputline = a:define.default_text
   let obj.static_head = a:define.static_head=='' ? '' : a:define.static_head=~'\s$' ? a:define.static_head : a:define.static_head. ' '
-  let obj._firstmess = a:firstmess
   let obj._errmsgs = []
+  let obj._echos = a:firstmess!='' ? [a:firstmess] : []
+  let obj.mappings = s:get_mappings(obj)
   return obj
 endfunction
 "}}}
@@ -504,6 +493,10 @@ function! s:Prompt.add_errmsg(errmsg) "{{{
   call add(self._errmsgs, a:errmsg)
 endfunction
 "}}}
+function! s:Prompt.add_echos(msg) "{{{
+  call add(self._echos, a:msg)
+endfunction
+"}}}
 function! s:Prompt.echo() "{{{
   redraw
   try
@@ -512,17 +505,16 @@ function! s:Prompt.echo() "{{{
     call self.add_errmsg('prompt-function: '.v:throwpoint. ' '. v:exception)
     let prtbase = '>>> '
   endtry
-  call s:adjust_cmdheight(prtbase)
-  let &cmdheight += len(self._errmsgs) + (self._firstmess=='' ? 0 : s:get_nlcount(self._firstmess)+1)
+  call self._adjust_cmdheight(prtbase)
   echoh Error
   for msg in self._errmsgs
     echom msg
   endfor
   echoh NONE
-  if self._firstmess!=''
-    echo self._firstmess
-  end
-  let [self._errmsgs, self._firstmess] =[[], '']
+  for msg in self._echos
+    echo msg
+  endfor
+  let [self._errmsgs, self._echos] =[[], []]
   let onpostcurs = matchlist(self.input[1], '^\(.\)\(.*\)')
   let inputs = map([self.input[0], get(onpostcurs, 1, ''), get(onpostcurs, 2, '')], 'escape(v:val, ''"\'')')
   let is_cursorspace = inputs[1]=='' || inputs[1]==' '
@@ -531,6 +523,25 @@ function! s:Prompt.echo() "{{{
   exe 'echoh' hiactive '| echon "'. self.static_head. inputs[0]. '"'
   exe 'echoh' hicursor '| echon "'. (is_cursorspace? ' ': inputs[1]). '"'
   exe 'echoh' hiactive '| echon "'. inputs[2].'"| echoh NONE'
+endfunction
+"}}}
+function! s:Prompt._adjust_cmdheight(prtbase) "{{{
+  let s:_height = 0
+  call substitute(a:prtbase, '\n', '\=s:_height_add()', 'g')
+  for str in self._errmsgs
+    call substitute(str, '\n', '\=s:_height_add()', 'g')
+    let s:_height += 1
+  endfor
+  for str in self._echos
+    call substitute(str, '\n', '\=s:_height_add()', 'g')
+    let s:_height += 1
+  endfor
+  let ch = s:glboptholder.get_optval('cmdheight')
+  let &cmdheight = s:_height < ch ? ch : s:_height+1
+endfunction
+"}}}
+function! s:_height_add() "{{{
+  let s:_height += 1
 endfunction
 "}}}
 function! s:Prompt.append(str) "{{{
@@ -917,6 +928,7 @@ function! s:PrtDetailSelection() "{{{
   call s:buildview()
   call b:alti_prompt.echo()
 endfunction
+"}}}
 function! s:PrtExit() "{{{
   call s:exit_process('canceledfunc')
 endfunction
