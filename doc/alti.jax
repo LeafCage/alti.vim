@@ -133,8 +133,8 @@ g:alti_prompt_mappings				*g:alti_prompt_mappings*
 	let g:alti_prompt_mappings = {
 	  \ 'PrtCurLeft()': ['<C-k>', '<Left>'],
 	  \ 'PrtCurRight()': ['<C-l>', '<Right>'],
-	  \ 'PrtPage(1)': ['<C-f>', '<PageDown>'],
-	  \ 'PrtPage(-1)': ['<C-b>', '<PageUp>'],
+	  \ 'PrtPage(1)': ['<C-f>', '<C-Space>', '<PageDown>'],
+	  \ 'PrtPage(-1)': ['<C-b>', '<S-Space>', '<PageUp>'],
 	  \ 'PrtSubmit()': ['<CR>', '<C-j>'],
 	  \ 'ToggleType(1)': ['<C-]>', '<C-Down>'],
 	  \ 'ToggleType(-1)': ['<C-\>', '<C-Up>'],
@@ -227,7 +227,6 @@ alti#init({define}, [{firstmsg}, [{bind}]])
 		word	(文字列)	表示・挿入に使われる文字列
 		view	(文字列)	表示に使われる文字列。wordより優先。
 		insert	(文字列)	挿入に使われる文字列。wordより優先。
-		info	(文字列)	PrtInfoSelection() で表示される情報
 
 		この辞書に独自のキーを作るときには、将来追加されるかも知れない
 		キーのことを考慮して、キー名の先頭にアンダースコアを付けること
@@ -394,11 +393,11 @@ altiバッファ内で標準で定義されるキーマッピングの名称と�
 		standard :		['<C-p>', '<Down>']
 		ctrlplike :		['<C-j>', '<Down>']
 	PrtSelectMove("t")	候補窓の先頭へ
-		standard :	     ['<C-x>gg', '<C-t>', '<Home>', '<kHome>']
-		ctrlplike :	     ['<C-x>gg', '<C-t>', '<Home>', '<kHome>']
+		standard :	 ['<C-g>g', '<C-g><C-g>', '<Home>', '<kHome>']
+		ctrlplike :	 ['<C-g>g', '<C-g><C-g>', '<Home>', '<kHome>']
 	PrtSelectMove("b")	候補窓の末尾へ
-		standard :		['<C-x>G', '<C-z>', '<End>', '<kEnd>']
-		ctrlplike :		['<C-x>G', '<C-z>', '<End>', '<End>']
+		standard :		['<C-g>G', '<End>', '<kEnd>']
+		ctrlplike :		['<C-g>G', '<End>', '<End>']
 	PrtInsertSelection()	選択候補を入力欄へ挿入
 		standard :		['<Tab>']
 		ctrlplike :		['<Tab>']
@@ -432,23 +431,29 @@ Contextは|alti#init()|に渡す定義{define}の中で定義される関数の�
 される辞書である。
 これらの関数の挙動はこの辞書の要素を利用すれば細かく定義することができる。
 以下の要素を持つ。
+insertstr関数で有用な要素と、cmpl関数などで有用な要素がある。
 
-Context.arglead		補完対象の文字列
-Context.precursor	カーソルより前の文字列
-Context.postcursor	カーソルを含むカーソルより後の文字列
+# 共通で有用~
 Context.inputline	入力文字列全体
 Context.inputs		入力された文字列を非エスケープ空白で分割したリスト。現
 			在入力中の単語はこのリストに含めない。
+Context.static_head	現在の static_head |alti-define-static_head|
+
+# insertstr関数 や action関数 で有用~
+Context.selection	選択された候補文字列。候補が文字列の場合はそのままだが
+			、候補が辞書の場合、"insert" キーがあるならそれの要素
+			が使われ、なければ "word" キーのものが使われる。型は文
+			字列に変換される。
+Context.rawselection	選択された候補文字列。候補が辞書の場合、辞書そのものが
+			使われる。候補が文字列の場合、selection と同じである。
+
+# cmpl関数などで有用~
+Context.arglead		補完対象の文字列
+Context.precursor	カーソルより前の文字列
+Context.postcursor	カーソルを含むカーソルより後の文字列
 Context.leftwords	カーソル前の文字列を非エスケープ空白で分割したリスト
 Context.leftcount	カーソルより前にある単語の数。入力中のものは含めない。
 Context.cursoridx	カーソルの位置(バイト単位のインデックス)
-
-Context.selection	選択された候補文字列。候補が辞書の場合、"insert" キー
-			があるならそれの要素が使われ、なければ "word" キーのも
-			のが使われる。型は文字列に変換される。
-Context.rawselection	選択された候補文字列。候補が辞書の場合、辞書そのものが
-			使われる。候補が文字列の場合、selection と同じである。
-Context.static_head	現在の static_head |alti-define-static_head|
 
 Context.filtered({candidates})
 	cmpl関数|alti-define-cmpl|用の関数である。
@@ -503,11 +508,6 @@ Context.fuzzy_filtered({candidates})
 TODO						*alti-todo*
 
 - ハイライトをもう少しどうにかしたい。
-- デフォルトキーマッピングの見直し
-	- <C-z>(<C-s>)<C-x>ソート (is_sortableオプションを付ける (cmpl関数でそ
-	ういうアクションがあったことを受け取らせる))
-- ヴァーチャルなinputline
-- 区切り文字(<Space>)でPrtSelectInsertを兼用
 
 
 ==============================================================================

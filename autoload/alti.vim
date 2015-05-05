@@ -415,7 +415,7 @@ endfunction
 function! s:CmplWin.select_move(direction) "{{{
   let save_crrrow = line('.')
   let wht = winheight(0)
-  let directions = {'t': 'gg','b': 'G','u': wht.'k','d': wht.'j','j': 'j','k': 'k'}
+  let directions = {'t': 'gg', 'b': 'G', 'j': 'j', 'k': 'k'}
   exe 'keepj norm!' directions[a:direction]
   if line('.')==save_crrrow && a:direction=~'[jk]'
     exe 'keepj norm!' a:direction=='j' ? 'gg' : 'G'
@@ -499,12 +499,12 @@ function! s:Prompt.get_exitfunc_elms(exitfuncname) "{{{
   return self[a:exitfuncname]
 endfunction
 "}}}
-function! s:Prompt.add_errmsg(errmsg) "{{{
-  call add(self._errmsgs, a:errmsg)
-endfunction
-"}}}
 function! s:Prompt.add_echos(msg) "{{{
   call add(self._echos, a:msg)
+endfunction
+"}}}
+function! s:Prompt.add_errmsg(errmsg) "{{{
+  call add(self._errmsgs, a:errmsg)
 endfunction
 "}}}
 function! s:Prompt.echo() "{{{
@@ -940,17 +940,6 @@ function! s:PrtInsertSelection(...) "{{{
   call b:alti_prompt.insert_selection()
   call s:Context_update_prtinfo()
   call b:alti_cmplwin.update_candidates_after_insert_selection()
-  call s:buildview()
-  call b:alti_prompt.echo()
-endfunction
-"}}}
-function! s:PrtDetailSelection() "{{{
-  let detail = b:alti_cmplwin.get_selected_detail()
-  if detail==''
-    return
-  end
-  echo detail
-  call getchar()
   call s:buildview()
   call b:alti_prompt.echo()
 endfunction
