@@ -5,7 +5,7 @@ scriptencoding utf-8
 aug AltI
   autocmd!
   autocmd BufEnter :\[AltI]   if s:enable_autocmd && has_key(s:, 'alti_bufnr') && s:alti_bufnr > 0| exe s:alti_bufnr.'bw!'| end
-  autocmd BufLeave :\[AltI]   if s:enable_autocmd && exists('b:alti_cmplwin')| call b:alti_cmplwin.close()| end
+  autocmd BufLeave :\[AltI]   if s:enable_autocmd && exists('b:alti_cmplwin')| call s:alti_closebuf()| end
 aug END
 let s:enable_autocmd = 1
 "--------------------------------------
@@ -67,7 +67,7 @@ function! s:exit_process(funcname) "{{{
   let context = b:alti_context
   let line = b:alti_prompt.static_head. context.inputline
   let Exit__Func = b:alti_prompt.get_exitfunc_elms(a:funcname)
-  call b:alti_cmplwin.close()
+  call s:alti_closebuf()
   wincmd p
   call call(Exit__Func, [context, line], get(s:, 'funcself', {}))
   call s:_force_imoff()
@@ -82,9 +82,35 @@ function! s:_force_imoff() "{{{
   let &imd = save_imd
 endfunction
 "}}}
+function! s:alti_closebuf() "{{{
+  call s:HistHolder.save()
+  let s:enable_autocmd = 0
+  let rest = b:alti_cmplwin.rest
+  unlet! b:alti_cmplwin b:alti_prompt b:menu_mappings s:regholder s:defines s:stlmgr s:_height
+  if winnr('$')==1
+    bwipeout!
+  else
+    try
+      bunload!
+    catch
+      try
+        close
+      catch
+      endtry
+    endtry
+  end
+  let s:enable_autocmd = 1
+  call s:glboptholder.untap()
+  if rest.lines >= &lines && rest.winnr == winnr('$')
+    exe rest.winrestcmd
+  end
+  echo
+  redraw
+endfunction
+"}}}
 
 "==================
-"b:alti_cmplwin
+"CmplWin
 let s:CWMAX = 10
 let s:CWMIN = 1
 function! s:get_cw_opts() "{{{
@@ -220,6 +246,14 @@ function! s:HistHolder.get_nexthist(delta) "{{{
   return self._hists[self.idx]
 endfunction
 "}}}
+function! s:writecachefile(filename, list) "{{{
+  let dir = expand(g:alti_cache_dir)
+  if !isdirectory(dir)
+    call mkdir(dir, 'p')
+  end
+  call writefile(a:list, dir. '/'. a:filename)
+endfunction
+"}}}
 call s:HistHolder.load()
 
 let s:GlboptHolder = {}
@@ -337,7 +371,8 @@ function! s:CmplWin.update_candidates() "{{{
   try
     let self._candidates = call(self.cmplfunc, [b:alti_context], s:funcself)
   catch
-    call b:alti_prompt.add_errmsg('cmpl-function: '. v:throwpoint. ' '. v:exception)
+    call b:alti_prompt.add_errmsg('Error detected while processing cmpl-function : '. v:throwpoint)
+    call b:alti_prompt.add_errmsg(v:exception)
     let self._candidates = []
   endtry
 endfunction
@@ -434,31 +469,6 @@ function! s:CmplWin._refresh_highlight() "{{{
   cal matchadd('AltILinePre', '^>')
 endfunction
 "}}}
-function! s:CmplWin.close() "{{{
-  call s:HistHolder.save()
-  let s:enable_autocmd = 0
-  if winnr('$')==1
-    bwipeout!
-  else
-    try
-      bunload!
-    catch
-      try
-        close
-      catch
-      endtry
-    endtry
-  end
-  let s:enable_autocmd = 1
-  call s:glboptholder.untap()
-  if self._rest.lines >= &lines && self._rest.winnr == winnr('$')
-    exe self._rest.winrestcmd
-  end
-  echo
-  redraw
-  unlet! s:regholder s:defines s:stlmgr s:_height
-endfunction
-"}}}
 
 let s:Prompt = {}
 function! s:newPrompt(define, firstmess) "{{{
@@ -502,7 +512,8 @@ function! s:Prompt.echo() "{{{
   try
     let prtbase = call(self.prtbasefunc, [b:alti_context], s:funcself)
   catch
-    call self.add_errmsg('prompt-function: '.v:throwpoint. ' '. v:exception)
+    call self.add_errmsg('Error detected while processing prompt-function : '.v:throwpoint)
+    call self.add_errmsg(v:exception)
     let prtbase = '>>> '
   endtry
   call self._adjust_cmdheight(prtbase)
@@ -579,7 +590,8 @@ function! s:Prompt.insert_selection() "{{{
   try
     let str = call(self.insertstrfunc, [b:alti_context], s:funcself)
   catch
-    call self.add_errmsg('insertstr-function: '. v:throwpoint. ' '. v:exception)
+    call self.add_errmsg('Error detected while processing insertstr-function : '. v:throwpoint)
+    call self.add_errmsg(v:exception)
     return
   endtry
   unlet self.OnCmpl
