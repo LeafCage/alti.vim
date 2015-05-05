@@ -15,11 +15,11 @@ let s:TYPE_STR = type('')
 let s:TYPE_NUM = type(0)
 let s:TYPE_FLOAT = type(0.0)
 
-function! s:get_mappings(prompt) "{{{
+function! s:get_mappings() "{{{
   try
     let base = g:alti#mappings#{g:alti_default_mappings_base}#define
   catch /E121/
-    call a:prompt.add_errmsg('invalid value of g:alti_default_mappings_base: "'. g:alti_default_mappings_base. '"')
+    call alti#queue_errmsg('invalid value of g:alti_default_mappings_base: "'. g:alti_default_mappings_base. '"')
     let base = g:alti#mappings#standard#define
   endtry
   return filter(extend(copy(base), get(g:, 'alti_prompt_mappings', {})), 'v:val!=[]')
@@ -371,8 +371,8 @@ function! s:CmplWin.update_candidates() "{{{
   try
     let self._candidates = call(self.cmplfunc, [b:alti_context], s:funcself)
   catch
-    call b:alti_prompt.add_errmsg('Error detected while processing cmpl-function : '. v:throwpoint)
-    call b:alti_prompt.add_errmsg(v:exception)
+    call alti#queue_errmsg('Error detected while processing cmpl-function : '. v:throwpoint)
+    call alti#queue_errmsg(v:exception)
     let self._candidates = []
   endtry
 endfunction
@@ -486,7 +486,7 @@ function! s:newPrompt(define, firstmess) "{{{
   let obj.static_head = a:define.static_head=='' ? '' : a:define.static_head=~'\s$' ? a:define.static_head : a:define.static_head. ' '
   let obj._errmsgs = []
   let obj._echos = a:firstmess!='' ? [a:firstmess] : []
-  let obj.mappings = s:get_mappings(obj)
+  let obj.mappings = s:get_mappings()
   return obj
 endfunction
 "}}}
@@ -755,6 +755,20 @@ function! alti#on_insertstr_rm_arglead() "{{{
   end
   call b:alti_prompt.rm_arglead()
   let b:alti_cmplwin.OnCmpl = 0
+endfunction
+"}}}
+function! alti#queue_msg(msg) "{{{
+  if !exists('b:alti_prompt')
+    return
+  end
+  call b:alti_prompt.add_echos(a:msg)
+endfunction
+"}}}
+function! alti#queue_errmsg(errmsg) "{{{
+  if !exists('b:alti_prompt')
+    return
+  end
+  call b:alti_prompt.add_errmsg(type(a:errmsg)==s:TYPE_STR ? a:errmsg : string(a:errmsg))
 endfunction
 "}}}
 

@@ -166,6 +166,19 @@ g:alti_getreg_mappings				*g:alti_getreg_mappings*
 ------------------------------------------------------------------------------
 関数						*alti-functions*
 
+alti#queue_msg({msg})				*alti#queue_msg()*
+	altiウィンドウ出現中にメッセージを表示させる。alti実行中は画面が再描写
+	されるので、通常の|:echo|などの表示は消されてしまうため、これを使う。
+
+
+alti#queue_errmsg({errmsg})			*alti#queue_errmsg()*
+	altiウィンドウ出現中にメッセージ履歴|message-history|に残るエラーメッ
+	セージを表示させる。これはハイライトは|Error|のものが使われるが、実際
+	には例外ではない。alti実行中は画面が再描写されるので、通常の|:echom|な
+	どの表示は消されてしまうため、これを使う。
+	メッセージ{errmsg}が文字列でない場合は文字列に変換される。
+
+
 alti#on_insertstr_rm_arglead()		*alti#on_insertstr_rm_arglead()*
 	insertstr関数|alti-define-insertstr|の中でしか呼ぶことが許されていない
 	。現在入力されている文字列の中から ArgLead を除去する。これにより、
