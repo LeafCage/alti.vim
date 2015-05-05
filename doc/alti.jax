@@ -227,6 +227,14 @@ alti#init({define}, [{firstmsg}, [{bind}]])
 		word	(文字列)	表示・挿入に使われる文字列
 		view	(文字列)	表示に使われる文字列。wordより優先。
 		insert	(文字列)	挿入に使われる文字列。wordより優先。
+		menu	(文字列リスト)	SelectionMenu() で表示されるこの候補独
+					自のメニュー
+		menu_type  (文字列)	グローバルメニューに対しての表示方法。
+					"override"(グローバルメニューを上書き)
+					"pre"(グローバルメニューの前に表示)
+					"post"(グローバルメニューの後に表示)
+					の3つの値から指定する。既定では"post"
+					が選択される。
 
 		この辞書に独自のキーを作るときには、将来追加されるかも知れない
 		キーのことを考慮して、キー名の先頭にアンダースコアを付けること
@@ -283,6 +291,32 @@ alti#init({define}, [{firstmsg}, [{bind}]])
 	canceled (関数の参照･グローバル関数名)	*alti-define-canceled*
 		キャンセルされた後に呼ばれる関数。submittedと同じく引数を2つ取
 		る。内容はsubmittedのものと同じである。既定関数は何もしない。
+
+	default_actions	(リスト)		*alti-define-default_actions*
+		既定 : []
+		任意のアクション名を任意の数だけ指定する。このリストの第一要素
+		は DefaultAction(0) (既定では<C-y>) で実行されるアクション、第
+		二要素は DefaultAction(1) (既定では<C-v>) で実行されるアクショ
+		ンである。アクションの動作は|alti-define-actions|で定義する。
+		要素がない場合や空文字の場合にはそれらのコマンド実行時に何も起
+		こらない。
+		基本的に、これはメニュー|alti-define-menu|のアクションの、ショ
+		ートカットという位置づけなので、この要素の数を増やすのは避ける
+		べきである。
+
+	menu		(リスト)		*alti-define-menu*
+		既定 : []
+		選択候補についてのアクションのメニューを定義する。これは
+		SelectionMenu() キーマッピングで表示させるメニューである。
+		要素は文字列か、値を2つ持つリストである。文字列の場合はアクシ
+		ョン名、リストの場合は初めの要素にアクション名、次の要素に説明
+		の文字列を定義する。アクションは次の |alti-define-actions|で定
+		義する。
+
+	actions		(辞書)			*alti-define-actions*
+		この辞書には任意の名前の、関数の参照またはグローバル関数名を追
+		加できる。ここで定義された関数は、1つの引数{context}(辞書)
+		|alti-Context|を取る。
 
 	bind		(辞書)			*alti-define-bind*
 		既定 : {}
@@ -416,6 +450,14 @@ altiバッファ内で標準で定義されるキーマッピングの名称と�
 	PrtSubmit()		確定してalti終了
 		standard :		['<CR>']
 		ctrlplike :		['<CR>']
+	DefaultAction(0)	|alti-define-default_actions|で指定した0番目の
+				インデックスのアクションを実行する。
+		standard :		['<C-y>']
+		ctrlplike :		['<C-y>']
+	DefaultAction(1)	|alti-define-default_actions|で指定した1番目の
+				インデックスのアクションを実行する。
+		standard :		['<C-v>']
+		ctrlplike :		['<C-v>']
 	ToggleType(1)		次の定義に切り替える
 		standard :		['<C-^>', '<C-x><C-f>', '<C-Down>']
 		ctrlplike :		['<C-^>', '<C-x><C-f>', '<C-Down>']

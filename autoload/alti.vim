@@ -54,8 +54,12 @@ function! s:keyloop() "{{{
       call s:PrtExit()
     elseif inputs.action!=''
       try
-        exe 'call s:'. inputs.action
-      catch /E1[01]7/
+        if eval('s:'. inputs.action)
+          break
+        end
+      catch
+        call alti#queue_errmsg('Error detected while processing s:keyloop() : '. v:throwpoint)
+        call alti#queue_errmsg(v:exception)
       endtry
     elseif inputs.surplus !~# "^[\x80[:cntrl:]]"
       exe printf('call s:PrtAdd(''%s'')', inputs.surplus)
@@ -86,7 +90,7 @@ function! s:alti_closebuf() "{{{
   call s:HistHolder.save()
   let s:enable_autocmd = 0
   let rest = b:alti_cmplwin.rest
-  unlet! b:alti_cmplwin b:alti_prompt b:menu_mappings s:regholder s:defines s:stlmgr s:_height
+  unlet! b:alti_cmplwin b:alti_prompt b:alti_context b:menu_mappings s:regholder s:defines s:stlmgr s:_height
   if winnr('$')==1
     bwipeout!
   else
@@ -206,6 +210,19 @@ function! s:Assorter.remove_del_grouped_candidates() "{{{
 endfunction
 "}}}
 
+function! alti#_reenter_loop(...) "{{{
+  if !exists('b:alti_cmplwin')
+    return
+  end
+  if a:0
+    call b:alti_prompt.add_echos(a:1)
+  end
+  call s:Context_update_as_needed()
+  call s:refresh()
+  call s:keyloop()
+endfunction
+"}}}
+
 
 "======================================
 let s:HistHolder = {'_hists': [], 'idx': 0, '_is_inputsaved': 0}
@@ -259,7 +276,7 @@ call s:HistHolder.load()
 let s:GlboptHolder = {}
 function! s:newGlboptHolder() "{{{
   let obj = copy(s:GlboptHolder)
-  let obj.save_opts = {'magic': &magic, 'splitbelow': &sb, 'report': &report,
+  let obj.save_opts = {'magic': &magic, 'splitbelow': &sb, 'report': &report, 'completeopt': &cot,
     \ 'showcmd': &sc, 'sidescroll': &ss, 'sidescrolloff': &siso, 'insertmode': &im,
     \ 'guicursor': &gcr, 't_ve': &t_ve, 'ignorecase': &ic, 'langmap': &lmap, 'mousefocus': &mousef, 'cmdheight': &ch}
   set magic splitbelow noinsertmode report=9999 noshowcmd sidescroll=0 siso=0 ignorecase lmap= nomousef
@@ -355,14 +372,14 @@ function! s:newCmplWin(define) "{{{
   let s:alti_bufnr = bufnr('%')
   abclear <buffer>
   setl noro noswf nonu nobl nowrap nolist nospell nocuc winfixheight nohls fdc=0 fdl=99 tw=0 bt=nofile bufhidden=unload nocul
+  setl omnifunc=alti#menu#cmpl cot=menuone
   if v:version > 702
     setl nornu noundofile cc=0
   end
   call s:guicursor_enter()
   sil! exe 'hi AltILinePre '.( has("gui_running") ? 'gui' : 'cterm' ).'fg=bg'
   sy match AltILinePre '^>'
-  let obj = {'_rest': restcmds, '_cw': cw_opts, 'cmplfunc': a:define.cmpl, '_candidates': [], 'page': 1, 'lastpage': 1, 'candidates_len': 0,}
-  let obj.mappings = s:get_mappings()
+  let obj = {'rest': restcmds, '_cw': cw_opts, 'cmplfunc': a:define.cmpl, '_candidates': [], 'page': 1, 'lastpage': 1, 'candidates_len': 0, 'default_actions': a:define.default_actions, 'menu': a:define.menu, 'actions': a:define.actions}
   call extend(obj, s:CmplWin, 'keep')
   return obj
 endfunction
@@ -441,6 +458,23 @@ function! s:CmplWin.get_selected_detail() "{{{
   return get(selected, 'Detail', '')
 endfunction
 "}}}
+function! s:CmplWin.get_default_action(idx) "{{{
+  return get(self.default_actions, a:idx, '')
+endfunction
+"}}}
+function! s:CmplWin.do_action(action) "{{{
+  if !has_key(self.actions, a:action)
+    call alti#queue_errmsg('No such action : '. a:action)
+    return
+  end
+  try
+    call call(self.actions[a:action], [b:alti_context], s:funcself)
+  catch
+    call alti#queue_errmsg('Error detected while processing action-'. a:action. '-function : '. v:throwpoint)
+    call alti#queue_errmsg(v:exception)
+  endtry
+endfunction
+"}}}
 function! s:CmplWin.turn_page(delta) "{{{
   let self.page += a:delta
   let self.page = self.page<1 ? self.lastpage : self.page>self.lastpage ? 1 : self.page
@@ -449,9 +483,7 @@ endfunction
 function! s:CmplWin.buildview() "{{{
   setl ma
   let [candidates, height]= self._get_buildelm()
-  if type(get(candidates, 0))==s:TYPE_DICT
-    call map(candidates, 'has_key(v:val, "View") ? v:val.View : get(v:val, "Word", "")')
-  end
+  call map(candidates, 'type(v:val)!=s:TYPE_DICT ? v:val : has_key(v:val, "view") ? v:val.view : get(v:val, "word", "")')
   sil! exe '%delete _ | resize' height
   call map(candidates, '"> ". v:val')
   call setline(1, candidates)
@@ -715,9 +747,10 @@ endfunction
 
 "=============================================================================
 "Main:
-let s:dfl_define = {'name': '', 'default_text': '', 'static_head': '', 'prompt': 's:default_prompt', 'cmpl': 's:default_cmpl',
-  \ 'insertstr': 'alti#insertstr_posttab_annotation', 'canceled': 's:default_canceled', 'submitted': 's:default_submitted',
-  \ 'append_sep': 1, 'prompt_hl': 'Comment'}
+let s:dfl_define = {'name': '', 'default_text': '', 'static_head': '', 'append_sep': 1,
+  \ 'cmpl': 's:default_cmpl', 'prompt': 's:default_prompt', 'insertstr': 'alti#insertstr_posttab_annotation',
+  \ 'submitted': 's:default_submitted', 'canceled': 's:default_canceled',
+  \ 'default_actions': [], 'menu': [], 'actions': {}, 'prompt_hl': 'Comment'}
 function! alti#init(define, ...) "{{{
   if exists('b:alti_cmplwin')
     return
@@ -944,12 +977,30 @@ function! s:PrtInsertSelection(...) "{{{
   call b:alti_prompt.echo()
 endfunction
 "}}}
+function! s:SelectionMenu() "{{{
+  if b:alti_context.selection==''
+    return
+  end
+  call alti#menu#open()
+  return 1
+endfunction
+"}}}
 function! s:PrtExit() "{{{
   call s:exit_process('canceledfunc')
 endfunction
 "}}}
 function! s:PrtSubmit() "{{{
   call s:exit_process('submittedfunc')
+endfunction
+"}}}
+function! s:DefaultAction(idx) "{{{
+  let action = b:alti_cmplwin.get_default_action(a:idx)
+  if type(action)!=s:TYPE_STR || action==''
+    return
+  end
+  call b:alti_cmplwin.do_action(action)
+  call s:Context_update_as_needed()
+  call s:refresh()
 endfunction
 "}}}
 function! s:ToggleType(delta) "{{{
@@ -961,6 +1012,9 @@ function! s:ToggleType(delta) "{{{
   let define = s:defines.list[s:defines.idx]
   call extend(define, s:dfl_define, 'keep')
   let b:alti_cmplwin.cmplfunc = define.cmpl
+  let b:alti_cmplwin.default_actions = define.default_actions
+  let b:alti_cmplwin.menu = define.menu
+  let b:alti_cmplwin.actions = define.actions
   let b:alti_prompt.insertsep = define.append_sep ? ' ' : ''
   let b:alti_prompt.insertstrfunc = define.insertstr
   let b:alti_prompt.prtbasefunc = define.prompt
