@@ -154,27 +154,85 @@ function! s:divisionholder(holder, divisions) "{{{
 endfunction
 "}}}
 let s:Assorter = {}
-function! s:newAssorter(inputs) "{{{
+function! s:newAssorter(inputs, pat) "{{{
   let obj = copy(s:Assorter)
   let obj.inputs = a:inputs
+  let obj.pat = a:pat
   let obj.should_del_groups = {}
   let obj.candidates = []
   let obj.divisions = []
   return obj
 endfunction
 "}}}
-function! s:Assorter.assort_candidates(candidates) "{{{
+function! s:Assorter.assort_candidates(candidates, expr) "{{{
+  let self.__expr = a:expr
   for cand in a:candidates
-    let type = type(cand)
-    if type!=s:TYPE_LIST
-      if index(self.inputs, (type==s:TYPE_STR ? cand : string(cand)))==-1
-        call self._add([cand], [{}])
-      end
-    elseif cand!=[]
-      call self._assort_listcand(cand)
-    end
+    call self['_assort'.type(cand)](cand)
     unlet cand
   endfor
+endfunction
+"}}}
+function! s:Assorter['_assort'.s:TYPE_STR](cand) "{{{
+  let cand = a:cand
+  if a:cand!='' && index(self.inputs, a:cand)==-1 && eval(self.__expr)
+    call self._add([a:cand], [{}])
+  end
+endfunction
+"}}}
+function! s:Assorter['_assort'.s:TYPE_NUM](cand) "{{{
+  let cand = string(a:cand)
+  if index(self.inputs, cand)==-1 && eval(self.__expr)
+    call self._add([cand], [{}])
+  end
+endfunction
+"}}}
+function! s:Assorter['_assort'.s:TYPE_FLOAT](cand) "{{{
+  let cand = string(a:cand)
+  if index(self.inputs, cand)==-1 && eval(self.__expr)
+    call self._add([cand], [{}])
+  end
+endfunction
+"}}}
+function! s:Assorter._assort2(cand) "{{{
+endfunction
+"}}}
+function! s:Assorter['_assort'.s:TYPE_LIST](cand) "{{{
+  let cand = type(a:cand[0])==s:TYPE_STR ? a:cand[0] : string(a:cand[0])
+  if cand==''
+    return
+  end
+  let division = s:divisionholder({}, a:cand[1:])
+  if index(self.inputs, cand)==-1
+    if eval(self.__expr)
+      call self._add([cand], [division])
+    end
+    return
+  end
+  call extend(self.should_del_groups, division)
+  if has_key(division, '__PARM')
+    call self._add([cand], [division])
+  end
+endfunction
+"}}}
+function! s:Assorter['_assort'.s:TYPE_DICT](cand) "{{{
+  if !has_key(a:cand, 'word')
+    return
+  end
+  let cand = type(a:cand.word)==s:TYPE_STR ? a:cand.word : string(a:cand.word)
+  if cand==''
+    return
+  end
+  let division = s:divisionholder({}, get(a:cand, 'group', []))
+  if index(self.inputs, cand)==-1
+    if eval(self.__expr)
+      call self._add([a:cand], [division])
+    end
+    return
+  end
+  call extend(self.should_del_groups, division)
+  if has_key(division, '__PARM')
+    call self._add([a:cand], [division])
+  end
 endfunction
 "}}}
 function! s:Assorter._assort_listcand(cand) "{{{
@@ -716,31 +774,28 @@ function! s:Context_update_as_needed() "{{{
   end
 endfunction
 "}}}
-function! s:Context._filtered_by_inputs(candidates) "{{{
-  let assorter = s:newAssorter(self.inputs)
-  call assorter.assort_candidates(a:candidates)
+function! s:Context.filtered(candidates) "{{{
+  let assorter = s:newAssorter(self.inputs, '^'. self.arglead)
+  call assorter.assort_candidates(a:candidates, 'cand =~ self.pat')
   return assorter.remove_del_grouped_candidates()
 endfunction
 "}}}
-function! s:Context.filtered(candidates) "{{{
-  let candidates = self._filtered_by_inputs(a:candidates)
-  return filter(candidates, 'v:val =~ "^".self.arglead')
-endfunction
-"}}}
 function! s:Context.backward_filtered(candidates) "{{{
-  let candidates = self._filtered_by_inputs(a:candidates)
-  return filter(candidates, 'v:val =~ self.arglead."$"')
+  let assorter = s:newAssorter(self.inputs, self.arglead. '$')
+  call assorter.assort_candidates(a:candidates, 'cand =~ self.pat')
+  return assorter.remove_del_grouped_candidates()
 endfunction
 "}}}
 function! s:Context.partial_filtered(candidates) "{{{
-  let candidates = self._filtered_by_inputs(a:candidates)
-  return filter(candidates, 'v:val =~ self.arglead')
+  let assorter = s:newAssorter(self.inputs, self.arglead)
+  call assorter.assort_candidates(a:candidates, 'cand =~ self.pat')
+  return assorter.remove_del_grouped_candidates()
 endfunction
 "}}}
 function! s:Context.fuzzy_filtered(candidates) "{{{
-  let candidates = self._filtered_by_inputs(a:candidates)
-  let pat = substitute(self.arglead, '.\_$\@!', '\0[^\0]\\{-}', 'g')
-  return filter(candidates, 'v:val =~ pat')
+  let assorter = s:newAssorter(self.inputs, substitute(self.arglead, '.\_$\@!', '\0[^\0]\\{-}', 'g'))
+  call assorter.assort_candidates(a:candidates, 'cand =~ self.pat')
+  return assorter.remove_del_grouped_candidates()
 endfunction
 "}}}
 
