@@ -28,7 +28,9 @@ function! s:get_menuitems_base() "{{{
   let menu_type = get(rawselection, 'menu_type', 'post')
   let altmenu = has_key(rawselection, 'menu') ? rawselection.menu : []
   if type(altmenu)!=s:TYPE_LIST
-    call alti#queue_errmsg('menu type of "'. (has_key(rawselection, 'view') ? rawselection.view : get(rawselection, 'word', '')). '" is not List.') "TODO パーマネント表示させる
+    let s:menu_err = 'menu type of "'. (has_key(rawselection, 'view') ? rawselection.view : get(rawselection, 'word', '')). '" is not List.'
+    echoh ErrorMsg
+    echom s:menu_err
     return b:alti_cmplwin.menu
   end
   return menu_type==#'override' ? altmenu : menu_type==#'pre' ?  altmenu + b:alti_cmplwin.menu : menu_type==#'post' ? b:alti_cmplwin.menu + altmenu : b:alti_cmplwin.menu
@@ -48,7 +50,7 @@ function! s:_make_menu_PrtSelectMove(direc) "{{{
 endfunction
 "}}}
 function! s:_make_menu_SelectionMenu() "{{{
-  return 'MenuNext'
+  return 'MenuExit'
 endfunction
 "}}}
 function! s:_make_menu_PrtBS() "{{{
@@ -61,10 +63,6 @@ endfunction
 "}}}
 function! s:_make_menu_PrtClear() "{{{
   return 'MenuRefineClear'
-endfunction
-"}}}
-function! s:_make_menu_PrtInsertSelection(...) "{{{
-  return 'PrtInsertSelection'
 endfunction
 "}}}
 function! s:_make_menu_PrtExit() "{{{
@@ -196,8 +194,8 @@ function! alti#menu#open() "{{{
   call b:alti_prompt.echo()
   setl ma
   unlet! s:menu_base s:menu
+  let s:menu_err = ''
   call feedkeys("A\<C-x>\<C-o>\<C-r>=alti#menu#_capture()\<CR>", 'n')
-  return 1
 endfunction
 "}}}
 function! alti#menu#cmpl(findstart, base) "{{{
@@ -217,6 +215,11 @@ function! alti#menu#_capture() "{{{
     return s:MenuExit()
   end
   call b:alti_prompt.echo()
+  if s:menu_err!=''
+    echoh ErrorMsg
+    echon "\n". s:menu_err
+    echoh NONE
+  end
   try
     let inputs = alti_l#lim#ui#keybind(b:menu_mappings, {'transit':1, 'expand': 1})
   catch
@@ -234,11 +237,6 @@ endfunction
 "}}}
 
 
-function! s:PrtInsertSelection() "{{{
-  return s:MenuNop()
-  "TODO
-endfunction
-"}}}
 function! s:MenuPrev() "{{{
   return s:menu.prev()
 endfunction
@@ -249,7 +247,7 @@ endfunction
 "}}}
 function! s:MenuExecute() "{{{
   let action = s:menu.get_action()
-  unlet! s:menu_base s:menu
+  unlet! s:menu_base s:menu s:menu_err
   if type(action)!=s:TYPE_STR || action==''
     return "\<Esc>:call alti#_reenter_loop()\<CR>"
   end
@@ -257,8 +255,8 @@ function! s:MenuExecute() "{{{
 endfunction
 "}}}
 function! s:MenuExit() "{{{
-  unlet! s:menu_base s:menu
-  return "\<Esc>:call alti#_reenter_loop('exited from menu.')\<CR>"
+  unlet! s:menu_base s:menu s:menu_err
+  return "\<Esc>:call alti#_reenter_loop()\<CR>"
 endfunction
 "}}}
 function! s:MenuRefine(char) "{{{
