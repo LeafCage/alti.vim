@@ -28,7 +28,7 @@ function! s:get_menuitems_base() "{{{
   let menu_type = get(rawselection, 'menu_type', 'post')
   let altmenu = has_key(rawselection, 'menu') ? rawselection.menu : []
   if type(altmenu)!=s:TYPE_LIST
-    let s:menu_err = 'menu type of "'. (has_key(rawselection, 'view') ? rawselection.view : get(rawselection, 'word', '')). '" is not List.'
+    let s:menu_err = 'Type of "menu" must be List : '. string(altmenu)
     echoh ErrorMsg
     echom s:menu_err
     return b:alti_cmplwin.menu

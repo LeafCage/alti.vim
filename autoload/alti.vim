@@ -272,8 +272,14 @@ function! alti#_reenter_loop(...) "{{{
   if !exists('b:alti_cmplwin')
     return
   end
+  echo ''
   if a:0
-    call b:alti_prompt.add_echos(a:1)
+    try
+      call eval('s:'. a:1)
+    catch
+      call alti#queue_errmsg('Error detected while '. v:throwpoint)
+      call alti#queue_errmsg(v:exception)
+    endtry
   end
   call s:Context_update_as_needed()
   call s:refresh()
@@ -607,7 +613,7 @@ function! s:Prompt.echo() "{{{
     let prtbase = '>>> '
   endtry
   call self._adjust_cmdheight(prtbase)
-  echoh Error
+  echoh ErrorMsg
   for msg in self._errmsgs
     echom msg
   endfor
