@@ -228,7 +228,6 @@ alti#init({define}, [{firstmsg}, [{bind}]])
 
 		word	(文字列)	表示・挿入・絞り込みに使われる文字列
 		view	(文字列)	表示に使われる文字列。wordより優先。
-		insert	(文字列)	挿入に使われる文字列。wordより優先。
 		group	(文字列/リスト)	補完時に所属するグループを指定する。
 					Context.filtered()関数で使われる。
 					単数の場合は文字列でも良い。
@@ -488,9 +487,8 @@ Context.static_head	現在の static_head |alti-define-static_head|
 
 # insertstr関数 や action関数 で有用~
 Context.selection	選択された候補文字列。候補が文字列の場合はそのままだが
-			、候補が辞書の場合、"insert" キーがあるならそれの要素
-			が使われ、なければ "word" キーのものが使われる。型は文
-			字列に変換される。
+			、候補が辞書の場合、"word" キーのものが使われる。型は
+			文字列に変換される。
 Context.rawselection	選択された候補文字列。候補が辞書の場合、辞書そのものが
 			使われる。候補が文字列の場合、selection と同じである。
 
@@ -534,7 +532,7 @@ Context.filtered({candidates})
 	例えば以下のようなリストになる。 >
 		[ {"word": "foo", "view": "fofo", "group": ["A", "B"]},
 		\ {"word": "bar", "view": "baba", "group": "A"},
-		\ {"word": "baz", "insert": "BAZ", "group": "B"},
+		\ {"word": "baz", "view": "BAZ", "group": "B"},
 		\ "qux"]
 <	文字列とリストと辞書を織り交ぜることも出来る。 >
 		[ ["foo", ["A", "B"]],

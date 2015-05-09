@@ -767,7 +767,7 @@ function! s:Context_set_selection() "{{{
   if type==s:TYPE_STR
     let self.selection = rawselection
   elseif type == s:TYPE_DICT
-    let selection = has_key(rawselection, 'insert') ? rawselection.insert : get(rawselection, 'word', '')
+    let selection = get(rawselection, 'word', '')
     let self.selection = type(selection)==s:TYPE_STR ? selection : string(selection)
   else
     let self.selection = string(rawselection)
