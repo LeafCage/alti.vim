@@ -81,8 +81,8 @@ g:alti_available				*g:alti_available*
 	義する必要がある。
 
 
-g:alti_cache_dir				*g:alti_cache_dir*
-	既定値: "~/.cache/alti"
+g:alti_config_dir				*g:alti_config_dir*
+	既定値: "~/.config/vim/alti"
 	このディレクトリに履歴などのファイルが作成される。
 
 

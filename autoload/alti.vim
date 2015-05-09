@@ -291,7 +291,7 @@ endfunction
 "======================================
 let s:HistHolder = {'_hists': [], 'idx': 0, '_is_inputsaved': 0}
 function! s:HistHolder.load() "{{{
-  let path = expand(g:alti_cache_dir). '/hist'
+  let path = expand(g:alti_config_dir). '/hist'
   let self._hists = g:alti_max_history && filereadable(path) ? readfile(path) : []
   if get(self._hists, 0, "\n")!=''
     call insert(self._hists, '')
@@ -328,7 +328,7 @@ function! s:HistHolder.get_nexthist(delta) "{{{
 endfunction
 "}}}
 function! s:writecachefile(filename, list) "{{{
-  let dir = expand(g:alti_cache_dir)
+  let dir = expand(g:alti_config_dir)
   if !isdirectory(dir)
     call mkdir(dir, 'p')
   end
