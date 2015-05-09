@@ -90,7 +90,7 @@ function! s:alti_closebuf() "{{{
   call s:HistHolder.save()
   let s:enable_autocmd = 0
   let rest = b:alti_cmplwin.rest
-  unlet! b:alti_cmplwin b:alti_prompt b:alti_context b:menu_mappings s:regholder s:defines s:stlmgr s:_height
+  unlet! b:alti_cmplwin b:alti_prompt b:alti_context b:menu_mappings s:regholder s:defines s:stlmgr
   if winnr('$')==1
     bwipeout!
   else
@@ -633,22 +633,22 @@ function! s:Prompt.echo() "{{{
 endfunction
 "}}}
 function! s:Prompt._adjust_cmdheight(prtbase) "{{{
-  let s:_height = 0
-  call substitute(a:prtbase, '\n', '\=s:_height_add()', 'g')
+  let height = 0
+  for line in split(a:prtbase, '\n')
+    let height += strwidth(line) > &columns ? 2 : 1
+  endfor
   for str in self._errmsgs
-    call substitute(str, '\n', '\=s:_height_add()', 'g')
-    let s:_height += 1
+    for line in split(str, '\n')
+      let height += strwidth(line) > &columns ? 2 : 1
+    endfor
   endfor
   for str in self._echos
-    call substitute(str, '\n', '\=s:_height_add()', 'g')
-    let s:_height += 1
+    for line in split(str, '\n')
+      let height += strwidth(line) > &columns ? 2 : 1
+    endfor
   endfor
   let ch = s:glboptholder.get_optval('cmdheight')
-  let &cmdheight = s:_height < ch ? ch : s:_height+1
-endfunction
-"}}}
-function! s:_height_add() "{{{
-  let s:_height += 1
+  let &cmdheight = height < ch ? ch : height+1
 endfunction
 "}}}
 function! s:Prompt.append(str) "{{{
