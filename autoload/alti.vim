@@ -534,7 +534,7 @@ function! s:CmplWin.do_action(action) "{{{
   try
     call call(self.actions[a:action], [b:alti_context], s:funcself)
   catch
-    call alti#queue_errmsg('Error detected while processing action-'. a:action. '-function : '. v:throwpoint)
+    call alti#queue_errmsg('Error detected while processing action "'. a:action. '" : '. v:throwpoint)
     call alti#queue_errmsg(v:exception)
   endtry
 endfunction
@@ -635,18 +635,19 @@ endfunction
 function! s:Prompt._adjust_cmdheight(prtbase) "{{{
   let height = 0
   for line in split(a:prtbase, '\n')
-    let height += strwidth(line) > &columns ? 2 : 1
+    let height += (strwidth(line) / &columns) + 1
   endfor
   for str in self._errmsgs
     for line in split(str, '\n')
-      let height += strwidth(line) > &columns ? 2 : 1
+      let height += (strwidth(line) / &columns) + 1
     endfor
   endfor
   for str in self._echos
     for line in split(str, '\n')
-      let height += strwidth(line) > &columns ? 2 : 1
+      let height += (strwidth(line) / &columns) + 1
     endfor
   endfor
+  let height += (strwidth(self.input[0]. self.input[1]) / &columns)
   let ch = s:glboptholder.get_optval('cmdheight')
   let &cmdheight = height < ch ? ch : height+1
 endfunction
